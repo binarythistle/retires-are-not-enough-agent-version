@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import AsyncOpenAI
 
 from conference_booker.catalog import ConferenceCatalogClient
+from conference_booker.flights import FlightSearchClient
 from conference_booker.journey import ConversationEntry, ToolActivity
 from conference_booker.models import CamelModel
 from conference_booker.settings import Settings
@@ -73,9 +74,15 @@ async def lifespan(_: FastAPI):
 
     async with (
         httpx.AsyncClient(base_url=settings.catalog_base_url, timeout=10) as catalog_http,
+        httpx.AsyncClient(base_url=settings.flights_base_url, timeout=10) as flights_http,
         AsyncOpenAI(api_key=settings.openai_api_key, timeout=60) as openai,
     ):
-        agent = ConferenceBookerAgent(openai, settings.openai_model, ConferenceCatalogClient(catalog_http))
+        agent = ConferenceBookerAgent(
+            openai,
+            settings.openai_model,
+            ConferenceCatalogClient(catalog_http),
+            FlightSearchClient(flights_http),
+        )
         logging.getLogger(__name__).info("Model %s at %s", settings.openai_model, openai.base_url)
         yield
 

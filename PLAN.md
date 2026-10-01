@@ -115,7 +115,7 @@ control panel can point at either implementation. Don't run both implementations
 - *Test:* the welcome message arrives, traveller details are saved, and only future
   conferences are listed.
 
-**Slice 4 — The full journey**
+**Slice 4 — The full journey** ✅
 - Tools: `select_conference`, `book_selected_conference`, `get_flight_options`,
   `select_flight`, `book_selected_flight`.
 - Forced-tool rule (`book`, `confirm`, a flight number) and the completion summary.

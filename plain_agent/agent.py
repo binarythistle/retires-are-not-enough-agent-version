@@ -22,8 +22,14 @@ from conference_booker.agent.model import (
     tool_result_message,
     user_message,
 )
-from conference_booker.agent.results import CatalogueToolResult
-from conference_booker.catalog import ConferenceCatalogClient
+from conference_booker.agent.results import (
+    CatalogueToolResult,
+    ConferenceBookingResult,
+    FlightBookingResult,
+    FlightSearchResult,
+)
+from conference_booker.catalog import ConferenceCatalogClient, conference_city
+from conference_booker.flights import FlightSearchClient
 from conference_booker.journey import (
     ALREADY_COMPLETE,
     WELCOME_PROMPT,
@@ -37,22 +43,22 @@ from plain_agent.store import Conversation
 logger = logging.getLogger(__name__)
 
 CATALOGUE_UNAVAILABLE = "The Conference Catalog API is currently unavailable."
-
-# Declared to the model but not built yet. Slice 4 implements them.
-NOT_YET_BUILT = {
-    tools.SELECT_CONFERENCE,
-    tools.BOOK_SELECTED_CONFERENCE,
-    tools.GET_FLIGHT_OPTIONS,
-    tools.SELECT_FLIGHT,
-    tools.BOOK_SELECTED_FLIGHT,
-}
+FLIGHT_SEARCH_UNAVAILABLE = "The Flight Search API is currently unavailable."
+FLIGHT_BOOKING_UNAVAILABLE = "The Flight Booking API is currently unavailable."
 
 
 class ConferenceBookerAgent:
-    def __init__(self, openai: AsyncOpenAI, model: str, catalog: ConferenceCatalogClient) -> None:
+    def __init__(
+        self,
+        openai: AsyncOpenAI,
+        model: str,
+        catalog: ConferenceCatalogClient,
+        flights: FlightSearchClient,
+    ) -> None:
         self._openai = openai
         self._model = model
         self._catalog = catalog
+        self._flights = flights
 
     async def start(self, conversation: Conversation) -> AgentTurnReply:
         return await self._run_turn(conversation, WELCOME_PROMPT, record_user_message=False)
@@ -155,11 +161,124 @@ class ConferenceBookerAgent:
                 )
                 return _succeeded(result) if result.saved else _failed(result)
 
-            case name if name in NOT_YET_BUILT:
-                return json.dumps({"error": f"'{name}' is not available yet. Tell the attendee this step is coming soon."}), "failed"
+            case tools.SELECT_CONFERENCE:
+                conversation.state, result = state_tools.select_conference(
+                    conversation.state, _arguments(call).get("conferenceId", "")
+                )
+                return _succeeded(result) if result.selected else _failed(result)
+
+            case tools.BOOK_SELECTED_CONFERENCE:
+                return await self._book_selected_conference(conversation)
+
+            case tools.GET_FLIGHT_OPTIONS:
+                return await self._get_flight_options(conversation)
+
+            case tools.SELECT_FLIGHT:
+                conversation.state, result = state_tools.select_flight(
+                    conversation.state, _arguments(call).get("flightId", "")
+                )
+                return _succeeded(result) if result.selected else _failed(result)
+
+            case tools.BOOK_SELECTED_FLIGHT:
+                return await self._book_selected_flight(conversation)
 
             case _:
                 return json.dumps({"error": f"Unknown tool '{call.name}'."}), "failed"
+
+
+    # The bookings deliberately send no idempotency key. If the process dies after the API
+    # confirms but before the state below is updated, the booking exists but this agent has
+    # forgotten it, and booking again makes a duplicate. That is the plain version's weakness.
+
+    async def _book_selected_conference(self, conversation: Conversation) -> tuple[str, str]:
+        state = conversation.state
+        if state.traveller_details is None or state.selected_conference is None:
+            return _failed(
+                ConferenceBookingResult(
+                    booked=False, booking=None, error="Save traveller details and select a conference before booking."
+                )
+            )
+
+        if state.conference_booking is not None:
+            return _succeeded(ConferenceBookingResult(booked=True, booking=state.conference_booking, error=None))
+
+        try:
+            booking = await self._catalog.book_conference(
+                state.selected_conference.id, state.traveller_details.traveller_name
+            )
+        except httpx.HTTPError as exception:
+            logger.warning("Conference booking failed: %r", exception)
+            return _failed(ConferenceBookingResult(booked=False, booking=None, error=CATALOGUE_UNAVAILABLE))
+
+        conversation.state = conversation.state.model_copy(update={"conference_booking": booking})
+        return _succeeded(ConferenceBookingResult(booked=True, booking=booking, error=None))
+
+    async def _get_flight_options(self, conversation: Conversation) -> tuple[str, str]:
+        state = conversation.state
+        if state.selected_conference is None or state.traveller_details is None or state.conference_booking is None:
+            return _failed(
+                FlightSearchResult(
+                    found=False,
+                    origin=None,
+                    destination=None,
+                    flights=[],
+                    error="Book a selected conference and save traveller details before searching for flights.",
+                )
+            )
+
+        origin = state.traveller_details.departure_location
+        destination = conference_city(state.selected_conference.location)
+
+        try:
+            flights = await self._flights.search_flights(origin, destination)
+        except httpx.HTTPError as exception:
+            logger.warning("Flight search failed: %r", exception)
+            return _failed(
+                FlightSearchResult(
+                    found=False, origin=origin, destination=destination, flights=[], error=FLIGHT_SEARCH_UNAVAILABLE
+                )
+            )
+
+        conversation.state = conversation.state.model_copy(update={"available_flights": flights})
+
+        # An empty result is a successful search, not a tool failure.
+        if not flights:
+            return _succeeded(
+                FlightSearchResult(
+                    found=False,
+                    origin=origin,
+                    destination=destination,
+                    flights=[],
+                    error=f"No flights were found from {origin} to {destination}.",
+                )
+            )
+        return _succeeded(
+            FlightSearchResult(found=True, origin=origin, destination=destination, flights=flights, error=None)
+        )
+
+    async def _book_selected_flight(self, conversation: Conversation) -> tuple[str, str]:
+        state = conversation.state
+        if state.traveller_details is None or state.selected_flight is None or state.conference_booking is None:
+            return _failed(
+                FlightBookingResult(
+                    booked=False,
+                    booking=None,
+                    error="Book a conference, save traveller details, and select a flight before booking.",
+                )
+            )
+
+        if state.flight_booking is not None:
+            conversation.state = state.model_copy(update={"is_complete": True})
+            return _succeeded(FlightBookingResult(booked=True, booking=state.flight_booking, error=None))
+
+        try:
+            booking = await self._flights.book_flight(state.selected_flight.id, state.traveller_details.traveller_name)
+        except httpx.HTTPError as exception:
+            logger.warning("Flight booking failed: %r", exception)
+            return _failed(FlightBookingResult(booked=False, booking=None, error=FLIGHT_BOOKING_UNAVAILABLE))
+
+        conversation.state = conversation.state.model_copy(update={"flight_booking": booking, "is_complete": True})
+        return _succeeded(FlightBookingResult(booked=True, booking=booking, error=None))
 
 
 def _arguments(call: ModelToolCall) -> dict[str, str]:

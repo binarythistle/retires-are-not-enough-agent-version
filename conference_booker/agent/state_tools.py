@@ -6,7 +6,12 @@ from __future__ import annotations
 
 import re
 
-from conference_booker.agent.results import TravellerDetailsResult
+from conference_booker.agent import tools
+from conference_booker.agent.results import (
+    ConferenceSelectionResult,
+    FlightSelectionResult,
+    TravellerDetailsResult,
+)
 from conference_booker.journey import JourneyState, TravellerDetails
 
 # Python's re has no \p{L}; [^\W\d_] is "any Unicode letter".
@@ -53,3 +58,58 @@ def save_traveller_details(
         }
     )
     return next_state, TravellerDetailsResult(saved=True, details=details, errors=[])
+
+
+def select_conference(state: JourneyState, conference_id: str) -> tuple[JourneyState, ConferenceSelectionResult]:
+    # Validates against the catalogue already retained in state, so selecting costs no HTTP call.
+    if not state.available_conferences:
+        return state, ConferenceSelectionResult(
+            selected=False,
+            conference=None,
+            error=f"Call {tools.GET_AVAILABLE_CONFERENCES} before selecting a conference.",
+        )
+
+    selected = next((c for c in state.available_conferences if c.id.lower() == conference_id.lower()), None)
+    if selected is None:
+        return state, ConferenceSelectionResult(
+            selected=False,
+            conference=None,
+            error=f"No conference with the ID '{conference_id}' is available to select.",
+        )
+
+    next_state = state.model_copy(
+        update={
+            "selected_conference": selected,
+            "conference_booking": None,
+            "available_flights": [],
+            "selected_flight": None,
+            "flight_booking": None,
+            "is_complete": False,
+        }
+    )
+    return next_state, ConferenceSelectionResult(selected=True, conference=selected, error=None)
+
+
+def select_flight(state: JourneyState, flight_id: str) -> tuple[JourneyState, FlightSelectionResult]:
+    if state.selected_conference is None or state.traveller_details is None:
+        return state, FlightSelectionResult(
+            selected=False,
+            flight=None,
+            error="Select a conference and save traveller details before selecting a flight.",
+        )
+
+    if not state.available_flights:
+        return state, FlightSelectionResult(
+            selected=False,
+            flight=None,
+            error=f"Call {tools.GET_FLIGHT_OPTIONS} before selecting a flight.",
+        )
+
+    flight = next((f for f in state.available_flights if f.id.lower() == flight_id.lower()), None)
+    if flight is None:
+        return state, FlightSelectionResult(
+            selected=False, flight=None, error="That flight is not available for the saved journey."
+        )
+
+    next_state = state.model_copy(update={"selected_flight": flight, "flight_booking": None, "is_complete": False})
+    return next_state, FlightSelectionResult(selected=True, flight=flight, error=None)

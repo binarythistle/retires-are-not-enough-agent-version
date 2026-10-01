@@ -28,9 +28,29 @@ a new journey, and an open page that sends a message is told the conversation is
 The log prints one line per model round-trip with its token counts, and one line per turn
 with the journey's running total.
 
-As of Slice 3 the agent can tell the time, save traveller details and list conferences.
-Selecting and booking arrive in Slice 4; until then the model is told those tools are not
-built yet.
+Both APIs must be running. The full journey, which is also the WireMock script:
+
+| Step | Type | Tool called |
+| --- | --- | --- |
+| Traveller details | `Les Jackson, LCY, isle` | `save_traveller_details` |
+| Find conferences | `Amsterdam` | `get_current_date_time`, `get_available_conferences` |
+| Choose one | `World AI Summit` | `select_conference` |
+| Book it | `book` | `book_selected_conference` (forced) |
+| Explore flights | `yes` | `get_flight_options` |
+| Choose a flight | `British Airways BA 724` | `select_flight` (forced by the flight number) |
+| Book it | `book` | `book_selected_flight` (forced), then "Journey complete" |
+
+### Crash demo
+
+The bookings send no idempotency key, on purpose:
+
+1. Get as far as `book` for the conference. Kill the agent process (`Ctrl+C`, or
+   `kill -9` for effect) while the reply is still pending, or straight after it arrives.
+2. `curl http://127.0.0.1:5056/bookings` shows the conference booking exists.
+3. Restart the agent and refresh the page. The journey is gone, and the agent has no idea the
+   ticket was booked.
+4. Go through the journey again and book. `GET /bookings` now holds a duplicate booking for the
+   same traveller.
 
 The frontend in `web/static/` is copied unchanged from the .NET `wwwroot/`, and both agent
 versions serve it.

@@ -26,6 +26,11 @@ class ConferenceBooking(DomainModel):
     conference: ConferenceSummary
 
 
+def conference_city(location: str) -> str:
+    """"Amsterdam, Netherlands" -> "Amsterdam", the form the Flight Search API matches on."""
+    return location.split(",", 1)[0].strip()
+
+
 class ConferenceCatalogClient:
     def __init__(self, http: httpx.AsyncClient) -> None:
         self._http = http
@@ -34,3 +39,13 @@ class ConferenceCatalogClient:
         response = await self._http.get("/conferences")
         response.raise_for_status()
         return [ConferenceSummary.model_validate(item) for item in response.json()]
+
+    async def book_conference(
+        self, conference_id: str, traveller_name: str, idempotency_key: str | None = None
+    ) -> ConferenceBooking:
+        response = await self._http.post(
+            "/bookings",
+            json={"conferenceId": conference_id, "travellerName": traveller_name, "idempotencyKey": idempotency_key},
+        )
+        response.raise_for_status()
+        return ConferenceBooking.model_validate(response.json())
