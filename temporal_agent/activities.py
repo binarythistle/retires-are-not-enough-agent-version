@@ -1,8 +1,9 @@
-"""Everything with a side effect: the model round-trip and the four API calls.
+"""Everything with a side effect: the model round-trip and the API calls.
 
-These deliberately catch nothing. A failure propagates and Temporal retries the activity with
-backoff, so an API outage mid-turn stalls the attendee's turn rather than failing it: when the
-API returns, the turn finishes. The workflow decides what each result means for the journey.
+Failures are classified, not caught. A retryable one (429, 5xx, network) propagates and
+Temporal retries it with backoff, so an API outage mid-turn stalls the attendee's turn rather
+than failing it. A permanent one (other 4xx) fails the activity immediately, and the workflow
+decides what that means for the journey.
 """
 
 from __future__ import annotations
@@ -18,8 +19,12 @@ from conference_booker.agent.model import ModelResponse, invoke_model
 from conference_booker.catalog import ConferenceBooking, ConferenceCatalogClient, ConferenceSummary
 from conference_booker.flights import FlightBooking, FlightOption, FlightSearchClient
 from conference_booker.models import CamelModel
+from temporal_agent.failures import classify_api_failures, classify_model_failures
 
 T = TypeVar("T")
+
+CATALOG_API = "Conference Catalog API"
+FLIGHTS_API = "Flight Search API"
 
 # A model call can take tens of seconds. Heartbeating while it runs lets Temporal notice a dead
 # worker within the workflow's heartbeat timeout, instead of waiting out start_to_close.
@@ -31,9 +36,14 @@ class ModelRequest(CamelModel):
     required_tool: str | None
 
 
+# The idempotency keys are derived from the workflow, so a retry after a POST that succeeded
+# but timed out returns the original booking instead of creating a second one.
+
+
 class BookConferenceInput(CamelModel):
     conference_id: str
     traveller_name: str
+    idempotency_key: str
 
 
 class SearchFlightsInput(CamelModel):
@@ -44,6 +54,7 @@ class SearchFlightsInput(CamelModel):
 class BookFlightInput(CamelModel):
     flight_id: str
     traveller_name: str
+    idempotency_key: str
 
 
 class ConferenceBookerActivities:
@@ -64,24 +75,37 @@ class ConferenceBookerActivities:
         """One model round-trip. Returns the tool calls the model asked for instead of running
         them, so every tool call is the workflow's decision and appears in the event history."""
         return await _heartbeating(
-            invoke_model(self._openai, self._model, request.messages, request.required_tool)
+            classify_model_failures(
+                invoke_model(self._openai, self._model, request.messages, request.required_tool)
+            )
         )
 
     @activity.defn
     async def get_available_conferences(self) -> list[ConferenceSummary]:
-        return await self._catalog.get_available_conferences()
+        return await classify_api_failures(CATALOG_API, self._catalog.get_available_conferences())
 
     @activity.defn
     async def book_conference(self, request: BookConferenceInput) -> ConferenceBooking:
-        return await self._catalog.book_conference(request.conference_id, request.traveller_name)
+        return await classify_api_failures(
+            CATALOG_API,
+            self._catalog.book_conference(request.conference_id, request.traveller_name, request.idempotency_key),
+        )
+
+    @activity.defn
+    async def cancel_conference_booking(self, booking_reference: str) -> ConferenceBooking:
+        """Compensation: releases a conference ticket when the journey cannot complete."""
+        return await classify_api_failures(CATALOG_API, self._catalog.cancel_booking(booking_reference))
 
     @activity.defn
     async def search_flights(self, request: SearchFlightsInput) -> list[FlightOption]:
-        return await self._flights.search_flights(request.origin, request.destination)
+        return await classify_api_failures(FLIGHTS_API, self._flights.search_flights(request.origin, request.destination))
 
     @activity.defn
     async def book_flight(self, request: BookFlightInput) -> FlightBooking:
-        return await self._flights.book_flight(request.flight_id, request.traveller_name)
+        return await classify_api_failures(
+            FLIGHTS_API,
+            self._flights.book_flight(request.flight_id, request.traveller_name, request.idempotency_key),
+        )
 
 
 async def _heartbeating(work: Awaitable[T]) -> T:

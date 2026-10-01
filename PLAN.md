@@ -140,11 +140,10 @@ control panel can point at either implementation. Don't run both implementations
 - Added beyond .NET: the model activity heartbeats every second with a 5 s heartbeat timeout.
   Without it, a worker killed mid model call is only detected after the full 60 s
   `start_to_close_timeout`. With it, the turn resumes in about 5 s.
-- Known issue for Slice 6: a raw `httpx` exception, with its chained stack traces, is too big
-  for the SDK's failure size limit. The event history shows `Failure exceeds size limit.` with
-  the real error underneath. Raising short `ApplicationError`s fixes it.
+- Raw `httpx` exceptions were too big for the SDK's failure size limit, so the history showed
+  `Failure exceeds size limit.`. Fixed in Slice 6, which raises short `ApplicationError`s.
 
-**Slice 6 — Failure handling**
+**Slice 6 — Failure handling** ✅
 - Classify API failures: 4xx except 408/429 → non-retryable `ApplicationError`; everything
   else retries. Do the same for model failures.
 - Turn permanent failures into failed tool results that the model explains.
@@ -152,6 +151,11 @@ control panel can point at either implementation. Don't run both implementations
 - Saga: if the flight booking fails permanently, cancel the conference booking.
 - *Test:* arm faults with `/admin/fault`: 503×3 on the catalog, a 400 on flight booking (saga),
   and a 429 until cleared.
+- A permanent model failure (bad key, rejected request) fails the update, not the workflow. The
+  page shows "The agent could not complete that turn", and the next message works.
+- The .NET "compensation also fails" scenario arms a **500** on the cancel endpoint. A 500 is
+  retryable, so the compensation keeps retrying until the fault is cleared and then succeeds.
+  To see the "could not be cancelled" reply, arm a 400 instead.
 
 **Slice 7 — Lifecycle and observability**
 - 1 h idle timeout, cancellation recorded in the transcript, continue-as-new after 25 turns or

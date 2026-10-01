@@ -11,9 +11,9 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from temporalio.client import Client, WithStartWorkflowOperation
+from temporalio.client import Client, WithStartWorkflowOperation, WorkflowUpdateFailedError
 from temporalio.common import WorkflowIDConflictPolicy
 from temporalio.contrib.pydantic import pydantic_data_converter
 from temporalio.envconfig import ClientConfig
@@ -33,6 +33,11 @@ from temporal_agent.shared import TASK_QUEUE, workflow_id
 from temporal_agent.workflow import ConferenceBookerWorkflow
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
+
+# A turn fails outright only when the model fails permanently (a bad key, a rejected request).
+# The workflow survives it; the attendee is told and can try again.
+TURN_FAILED = "The agent could not complete that turn. Please try again."
 
 temporal: Client
 
@@ -57,16 +62,20 @@ async def welcome(request: ConversationRequest | None = None) -> ChatReply:
 
     # Update-with-start: one call both starts the conversation's workflow and delivers the
     # opening turn. USE_EXISTING means a repeated welcome lands on the workflow already running.
-    reply: AgentTurnReply = await temporal.execute_update_with_start_workflow(
-        ConferenceBookerWorkflow.welcome,
-        start_workflow_operation=WithStartWorkflowOperation(
-            ConferenceBookerWorkflow.run,
-            None,
-            id=workflow_id(conversation_id),
-            task_queue=TASK_QUEUE,
-            id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
-        ),
-    )
+    try:
+        reply: AgentTurnReply = await temporal.execute_update_with_start_workflow(
+            ConferenceBookerWorkflow.welcome,
+            start_workflow_operation=WithStartWorkflowOperation(
+                ConferenceBookerWorkflow.run,
+                None,
+                id=workflow_id(conversation_id),
+                task_queue=TASK_QUEUE,
+                id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
+            ),
+        )
+    except WorkflowUpdateFailedError as error:
+        return turn_failed(conversation_id, error)
+
     return ChatReply.of(conversation_id, reply)
 
 
@@ -86,6 +95,8 @@ async def chat(request: ChatRequest):
     try:
         # An update rather than a signal, because the browser is waiting for the reply.
         reply = await handle.execute_update(ConferenceBookerWorkflow.send_message, request.message)
+    except WorkflowUpdateFailedError as error:
+        return turn_failed(conversation_id, error)
     except RPCError as error:
         if error.status != RPCStatusCode.NOT_FOUND:
             raise
@@ -93,6 +104,11 @@ async def chat(request: ChatRequest):
         return ChatReply(message=ALREADY_COMPLETE, conversation_id=conversation_id, tool_activities=[], is_complete=True)
 
     return ChatReply.of(conversation_id, reply)
+
+
+def turn_failed(conversation_id: uuid.UUID, error: WorkflowUpdateFailedError) -> JSONResponse:
+    logger.warning("Turn failed for conversation %s: %s", conversation_id, error.cause)
+    return JSONResponse({"error": TURN_FAILED}, status_code=502)
 
 
 @app.get("/api/conversations/{conversation_id}")

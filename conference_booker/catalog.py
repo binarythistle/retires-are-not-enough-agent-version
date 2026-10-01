@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from urllib.parse import quote
 
 import httpx
 
@@ -47,5 +48,11 @@ class ConferenceCatalogClient:
             "/bookings",
             json={"conferenceId": conference_id, "travellerName": traveller_name, "idempotencyKey": idempotency_key},
         )
+        response.raise_for_status()
+        return ConferenceBooking.model_validate(response.json())
+
+    async def cancel_booking(self, booking_reference: str) -> ConferenceBooking:
+        """Releases a conference ticket. Idempotent on the API side."""
+        response = await self._http.post(f"/bookings/{quote(booking_reference, safe='')}/cancel")
         response.raise_for_status()
         return ConferenceBooking.model_validate(response.json())

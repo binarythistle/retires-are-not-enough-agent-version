@@ -96,6 +96,25 @@ whole turn step by step. The clock and the three state tools run inline in the w
 - **API outage.** Stop the Catalog API, ask about conferences, then start it again. The turn
   waits while Temporal retries, then completes.
 
+### Failure demos
+
+Arm faults with `apis/requests.http` or curl against `/admin/fault`:
+
+| Fault | What happens |
+| --- | --- |
+| Catalog `503`, `count: 3`, method `GET` | Temporal retries with backoff, the API heals, the turn completes. The attendee sees a slow reply, not an error. |
+| Flights `429` until cleared | The turn stalls while Temporal retries. Clear the fault and the reply arrives. |
+| Flights `400` on `POST /bookings` | **Saga.** The flight booking fails permanently (no retries), and the workflow cancels the conference booking: `GET /bookings` on the catalog shows it `Cancelled`. |
+| Plus Catalog `400` on `POST /bookings/` | The trailing slash hits only the cancel endpoint. Compensation fails, and the reply says the ticket could not be released. (With a `500` instead, the cancel keeps retrying until you clear it.) |
+
+The rule is the same as in .NET. A 4xx other than 408 or 429 means the request itself is wrong,
+so the activity fails immediately and the model is told. Everything else is retried until it
+works. The worker logs every failed attempt and whether it will be retried.
+
+Both bookings send an idempotency key built from the workflow ID and the item being booked, so
+a retried POST returns the original booking instead of a duplicate. Compare this with the plain
+version's crash demo.
+
 Token usage so far:
 
 ```bash

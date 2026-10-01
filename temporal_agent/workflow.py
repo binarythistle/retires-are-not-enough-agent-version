@@ -16,6 +16,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError, is_cancelled_exception
 
 with workflow.unsafe.imports_passed_through():
     from conference_booker.agent import policy, state_tools, tools
@@ -58,13 +59,24 @@ MODEL_TIMEOUT = timedelta(seconds=60)
 # call retried on another worker after this long, rather than after the full MODEL_TIMEOUT.
 MODEL_HEARTBEAT_TIMEOUT = timedelta(seconds=5)
 
-# API calls retry until the API comes back. Slice 6 adds non-retryable classification so a
-# permanently bad request fails fast instead of retrying forever.
+# Retryable API failures (429, 5xx, network) retry until the API comes back, so they never
+# reach the workflow. Permanent ones (other 4xx) are raised non-retryable by the activity and
+# fail fast; the workflow turns them into a tool result the model can explain.
 API_TIMEOUT = timedelta(seconds=15)
 API_RETRY = RetryPolicy(
     initial_interval=timedelta(seconds=1),
     backoff_coefficient=2,
     maximum_interval=timedelta(seconds=10),
+)
+
+
+CATALOGUE_UNAVAILABLE = (
+    "The Conference Catalog API could not complete that request. Tell the attendee it is "
+    "unavailable right now and offer to try again shortly. Do not invent conference details."
+)
+FLIGHT_SEARCH_UNAVAILABLE = (
+    "The Flight Search API could not complete that request. Tell the attendee it is "
+    "unavailable right now and offer to try again shortly. Do not invent flight schedules."
 )
 
 
@@ -189,11 +201,16 @@ class ConferenceBookerWorkflow:
                 return json.dumps(workflow.now().isoformat().replace("+00:00", "Z")), "succeeded"
 
             case tools.GET_AVAILABLE_CONFERENCES:
-                conferences = await workflow.execute_activity_method(
-                    ConferenceBookerActivities.get_available_conferences,
-                    start_to_close_timeout=API_TIMEOUT,
-                    retry_policy=API_RETRY,
-                )
+                try:
+                    conferences = await workflow.execute_activity_method(
+                        ConferenceBookerActivities.get_available_conferences,
+                        start_to_close_timeout=API_TIMEOUT,
+                        retry_policy=API_RETRY,
+                    )
+                except ActivityError as error:
+                    if is_cancelled_exception(error):
+                        raise
+                    return _api_failed(error, call, CatalogueToolResult(conferences=[], error=CATALOGUE_UNAVAILABLE))
                 self._state = self._state.model_copy(update={"available_conferences": conferences})
                 return _succeeded(CatalogueToolResult(conferences=conferences, error=None))
 
@@ -214,10 +231,10 @@ class ConferenceBookerWorkflow:
                 return _succeeded(result) if result.selected else _failed(result)
 
             case tools.BOOK_SELECTED_CONFERENCE:
-                return await self._book_selected_conference()
+                return await self._book_selected_conference(call)
 
             case tools.GET_FLIGHT_OPTIONS:
-                return await self._get_flight_options()
+                return await self._get_flight_options(call)
 
             case tools.SELECT_FLIGHT:
                 self._state, result = state_tools.select_flight(self._state, _arguments(call).get("flightId", ""))
@@ -229,7 +246,7 @@ class ConferenceBookerWorkflow:
             case _:
                 return json.dumps({"error": f"Unknown tool '{call.name}'."}), "failed"
 
-    async def _book_selected_conference(self) -> tuple[str, str]:
+    async def _book_selected_conference(self, call: ModelToolCall) -> tuple[str, str]:
         state = self._state
         if state.traveller_details is None or state.selected_conference is None:
             return _failed(
@@ -241,19 +258,27 @@ class ConferenceBookerWorkflow:
         if state.conference_booking is not None:
             return _succeeded(ConferenceBookingResult(booked=True, booking=state.conference_booking, error=None))
 
-        booking = await workflow.execute_activity_method(
-            ConferenceBookerActivities.book_conference,
-            BookConferenceInput(
-                conference_id=state.selected_conference.id,
-                traveller_name=state.traveller_details.traveller_name,
-            ),
-            start_to_close_timeout=API_TIMEOUT,
-            retry_policy=API_RETRY,
-        )
+        try:
+            booking = await workflow.execute_activity_method(
+                ConferenceBookerActivities.book_conference,
+                BookConferenceInput(
+                    conference_id=state.selected_conference.id,
+                    traveller_name=state.traveller_details.traveller_name,
+                    idempotency_key=_idempotency_key("conference", state.selected_conference.id),
+                ),
+                start_to_close_timeout=API_TIMEOUT,
+                retry_policy=API_RETRY,
+            )
+        except ActivityError as error:
+            if is_cancelled_exception(error):
+                raise
+            return _api_failed(
+                error, call, ConferenceBookingResult(booked=False, booking=None, error=CATALOGUE_UNAVAILABLE)
+            )
         self._state = self._state.model_copy(update={"conference_booking": booking})
         return _succeeded(ConferenceBookingResult(booked=True, booking=booking, error=None))
 
-    async def _get_flight_options(self) -> tuple[str, str]:
+    async def _get_flight_options(self, call: ModelToolCall) -> tuple[str, str]:
         state = self._state
         if state.selected_conference is None or state.traveller_details is None or state.conference_booking is None:
             return _failed(
@@ -269,12 +294,23 @@ class ConferenceBookerWorkflow:
         origin = state.traveller_details.departure_location
         destination = conference_city(state.selected_conference.location)
 
-        flights = await workflow.execute_activity_method(
-            ConferenceBookerActivities.search_flights,
-            SearchFlightsInput(origin=origin, destination=destination),
-            start_to_close_timeout=API_TIMEOUT,
-            retry_policy=API_RETRY,
-        )
+        try:
+            flights = await workflow.execute_activity_method(
+                ConferenceBookerActivities.search_flights,
+                SearchFlightsInput(origin=origin, destination=destination),
+                start_to_close_timeout=API_TIMEOUT,
+                retry_policy=API_RETRY,
+            )
+        except ActivityError as error:
+            if is_cancelled_exception(error):
+                raise
+            return _api_failed(
+                error,
+                call,
+                FlightSearchResult(
+                    found=False, origin=origin, destination=destination, flights=[], error=FLIGHT_SEARCH_UNAVAILABLE
+                ),
+            )
         self._state = self._state.model_copy(update={"available_flights": flights})
 
         # An empty result is a successful search, not a tool failure.
@@ -307,14 +343,95 @@ class ConferenceBookerWorkflow:
             self._state = state.model_copy(update={"is_complete": True})
             return _succeeded(FlightBookingResult(booked=True, booking=state.flight_booking, error=None))
 
-        booking = await workflow.execute_activity_method(
-            ConferenceBookerActivities.book_flight,
-            BookFlightInput(flight_id=state.selected_flight.id, traveller_name=state.traveller_details.traveller_name),
-            start_to_close_timeout=API_TIMEOUT,
-            retry_policy=API_RETRY,
-        )
+        try:
+            booking = await workflow.execute_activity_method(
+                ConferenceBookerActivities.book_flight,
+                BookFlightInput(
+                    flight_id=state.selected_flight.id,
+                    traveller_name=state.traveller_details.traveller_name,
+                    idempotency_key=_idempotency_key("flight", state.selected_flight.id),
+                ),
+                start_to_close_timeout=API_TIMEOUT,
+                retry_policy=API_RETRY,
+            )
+        except ActivityError as error:
+            if is_cancelled_exception(error):
+                raise
+            # The flight cannot be booked and retrying will not help. The conference ticket is
+            # already paid for, so release it rather than leaving the attendee with half a journey.
+            workflow.logger.error("Flight booking failed permanently (%s); compensating conference booking", error.cause)
+            return await self._compensate_conference_booking()
+
         self._state = self._state.model_copy(update={"flight_booking": booking, "is_complete": True})
         return _succeeded(FlightBookingResult(booked=True, booking=booking, error=None))
+
+    async def _compensate_conference_booking(self) -> tuple[str, str]:
+        """Saga compensation. Releases the conference ticket after a flight booking that cannot
+        succeed, and reports it so the model can tell the attendee what happened.
+
+        The pattern itself is just try/except plus a compensating call. What Temporal adds is
+        the guarantee that this runs even if the worker dies between the failed booking and the
+        cancellation.
+        """
+        conference_booking = self._state.conference_booking
+        if conference_booking is None:
+            return _failed(
+                FlightBookingResult(
+                    booked=False, booking=None, error="The flight could not be booked. Nothing needed releasing."
+                )
+            )
+
+        try:
+            await workflow.execute_activity_method(
+                ConferenceBookerActivities.cancel_conference_booking,
+                conference_booking.booking_reference,
+                start_to_close_timeout=API_TIMEOUT,
+                retry_policy=API_RETRY,
+            )
+        except ActivityError as error:
+            if is_cancelled_exception(error):
+                raise
+            # Compensation itself failed. Say so plainly rather than implying it worked.
+            workflow.logger.error("Compensation failed: %s", error.cause)
+            return _failed(
+                FlightBookingResult(
+                    booked=False,
+                    booking=None,
+                    error=(
+                        f"The flight could not be booked and conference booking {conference_booking.booking_reference} "
+                        "could not be cancelled automatically. Please contact the conference organiser."
+                    ),
+                )
+            )
+
+        self._state = self._state.model_copy(update={"conference_booking": None, "is_complete": False})
+        return _failed(
+            FlightBookingResult(
+                booked=False,
+                booking=None,
+                error=(
+                    f"The flight could not be booked, so conference booking {conference_booking.booking_reference} "
+                    "has been cancelled. Nothing has been charged for this journey. Please start again."
+                ),
+            )
+        )
+
+
+def _idempotency_key(purpose: str, subject_id: str) -> str:
+    """Stable across retries because it is derived from the workflow ID and what is being
+    booked, and it changes if the attendee picks something else."""
+    return f"{workflow.info().workflow_id}:{purpose}:{subject_id}"
+
+
+def _api_failed(error: ActivityError, call: ModelToolCall, result: DomainModel) -> tuple[str, str]:
+    """Turns a permanently failed API call into a tool result the model can explain.
+
+    A retryable outage never reaches here: it keeps retrying until the API returns. What does
+    reach here is a request that will fail identically for ever, and letting that escape would
+    fail the whole turn instead of producing a reply.
+    """
+    workflow.logger.warning("Tool %s failed permanently (%s); reporting it to the model", call.name, error.cause)
+    return _failed(result)
 
 
 def _arguments(call: ModelToolCall) -> dict[str, str]:

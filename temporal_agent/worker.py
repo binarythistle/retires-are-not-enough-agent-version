@@ -59,6 +59,7 @@ async def main() -> None:
                 activities.invoke_model,
                 activities.get_available_conferences,
                 activities.book_conference,
+                activities.cancel_conference_booking,
                 activities.search_flights,
                 activities.book_flight,
             ],
