@@ -1,0 +1,45 @@
+# Conference Booker (Python)
+
+A Python port of `../dotnet_agent_temporal`. See [PLAN.md](PLAN.md) for the slices and progress.
+
+## Setup
+
+```bash
+uv sync
+```
+
+## Conference Catalog API — port 5056
+
+```bash
+uv run uvicorn apis.catalog.main:app --port 5056
+```
+
+`GET /conferences`, `GET /conferences/{id}`, `POST /bookings`, `GET /bookings`,
+`GET /bookings/{ref}`, `POST /bookings/{ref}/cancel`.
+
+## Flight Search API — port 5057
+
+```bash
+uv run uvicorn apis.flights.main:app --port 5057
+```
+
+`GET /flights?origin=&destination=` (city or airport code, case-insensitive),
+`GET /flights/{id}`, `POST /bookings`, `GET /bookings`, `GET /bookings/{ref}`.
+
+## Shared behaviour
+
+- JSON is camelCase, the same as the .NET APIs.
+- `POST /bookings` accepts an optional `idempotencyKey`. Sending a key again returns the
+  original booking with `200` instead of a new `201`.
+- Bookings are held in memory, so restarting an API empties its booking list.
+- Fault injection: `POST /admin/fault` with `{"status", "count"?, "method"?, "pathPrefix"?}` arms
+  a fault, `GET` inspects it and `DELETE` clears it. `/admin` and `/health` are never faulted.
+  Requests carrying an `X-Demo-Control` header bypass the fault. 429 and 503 responses include
+  `Retry-After: 1`.
+
+[`apis/requests.http`](apis/requests.http) has ready-made requests for manual testing.
+
+## Demo data
+
+The conference dates are one year later than in the .NET project, so every conference is in
+the future again. Conference IDs changed with them, e.g. `world-ai-summit-amsterdam-2027`.

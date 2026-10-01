@@ -1,0 +1,52 @@
+### Manual checks for the two APIs. Works with the VS Code REST Client or JetBrains HTTP Client.
+
+@catalog = http://127.0.0.1:5056
+@flights = http://127.0.0.1:5057
+
+### Catalog: list conferences
+GET {{catalog}}/conferences
+
+### Catalog: one conference (case-insensitive)
+GET {{catalog}}/conferences/WORLD-AI-SUMMIT-AMSTERDAM-2027
+
+### Catalog: book (201), then send again with the same key (200, same booking)
+POST {{catalog}}/bookings
+Content-Type: application/json
+
+{"conferenceId": "world-ai-summit-amsterdam-2027", "travellerName": "Les Jackson", "idempotencyKey": "demo-1"}
+
+### Catalog: bookings, newest first
+GET {{catalog}}/bookings
+
+### Catalog: cancel (replace the reference)
+POST {{catalog}}/bookings/CONF-XXXXXXXX/cancel
+
+### Flights: search by city or airport code
+GET {{flights}}/flights?origin=LCY&destination=Amsterdam
+
+### Flights: book
+POST {{flights}}/bookings
+Content-Type: application/json
+
+{"flightId": "lon-ams-british-airways-ba724", "travellerName": "Les Jackson", "idempotencyKey": "demo-1"}
+
+### Flights: bookings
+GET {{flights}}/bookings
+
+### Fault: next 3 GETs on the catalog return 503 (then self-heal)
+POST {{catalog}}/admin/fault
+Content-Type: application/json
+
+{"status": 503, "count": 3, "method": "GET"}
+
+### Fault: flight bookings return 400 until cleared
+POST {{flights}}/admin/fault
+Content-Type: application/json
+
+{"status": 400, "method": "POST", "pathPrefix": "/bookings"}
+
+### Fault: inspect
+GET {{flights}}/admin/fault
+
+### Fault: clear
+DELETE {{flights}}/admin/fault
