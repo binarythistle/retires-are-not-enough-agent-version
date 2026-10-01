@@ -70,6 +70,16 @@ API_RETRY = RetryPolicy(
 )
 
 
+# An abandoned booth conversation should not stay open for ever.
+IDLE_TIMEOUT = timedelta(hours=1)
+
+# Turns after which the run is rolled over. is_continue_as_new_suggested() is the signal to use
+# in production; this lower bound also makes the behaviour reachable in a demo.
+TURNS_BEFORE_CONTINUE_AS_NEW = 25
+
+ABANDONED_IDLE = "This journey was closed after a period of inactivity. Start a new journey to book again."
+ABANDONED_CANCELLED = "This journey was closed. Start a new journey to book again."
+
 CATALOGUE_UNAVAILABLE = (
     "The Conference Catalog API could not complete that request. Tell the attendee it is "
     "unavailable right now and offer to try again shortly. Do not invent conference details."
@@ -89,12 +99,48 @@ class ConferenceBookerWorkflow:
         # Update handlers interleave at await points, so two quick submits would otherwise
         # each run a turn against the same state.
         self._turn_gate = asyncio.Lock()
+        self._turn_count = 0
+        self._abandoned = False
 
     @workflow.run
     async def run(self, carried_state: JourneyState | None) -> None:
-        await workflow.wait_condition(lambda: self._state.is_complete)
-        # Let the final turn's update return its reply before the workflow closes.
-        await workflow.wait_condition(workflow.all_handlers_finished)
+        try:
+            while not self._state.is_complete:
+                if self._should_continue_as_new():
+                    # Let the turn in flight finish before rolling the run over, otherwise its
+                    # caller never receives a result.
+                    await workflow.wait_condition(workflow.all_handlers_finished)
+                    workflow.continue_as_new(self._state)
+
+                turns_so_far = self._turn_count
+                try:
+                    await workflow.wait_condition(
+                        lambda: self._state.is_complete or self._turn_count != turns_so_far,
+                        timeout=IDLE_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    workflow.logger.info("Journey abandoned after %s with no attendee activity", IDLE_TIMEOUT)
+                    # A conference ticket already booked is left alone: it was asked for deliberately.
+                    self._record_abandonment(ABANDONED_IDLE)
+                    return
+
+            # Let the final turn's update return its reply before the workflow closes.
+            await workflow.wait_condition(workflow.all_handlers_finished)
+        except asyncio.CancelledError:
+            # The attendee started a new journey, so this one is deliberately discarded. Record
+            # why, then re-raise so the run shows as Cancelled rather than Completed.
+            workflow.logger.info("Journey cancelled by the attendee")
+            self._record_abandonment(ABANDONED_CANCELLED)
+            raise
+
+    def _should_continue_as_new(self) -> bool:
+        return self._turn_count > 0 and (
+            workflow.info().is_continue_as_new_suggested() or self._turn_count >= TURNS_BEFORE_CONTINUE_AS_NEW
+        )
+
+    def _record_abandonment(self, message: str) -> None:
+        self._abandoned = True
+        self._state = self._state.record("", message, record_user_message=False, tool_activities=[])
 
     @workflow.update
     async def welcome(self) -> AgentTurnReply:
@@ -113,7 +159,9 @@ class ConferenceBookerWorkflow:
 
     @workflow.query
     def get_transcript(self) -> ConversationTranscript:
-        return ConversationTranscript(messages=self._state.entries, is_complete=self._state.is_complete)
+        return ConversationTranscript(
+            messages=self._state.entries, is_complete=self._state.is_complete or self._abandoned
+        )
 
     @workflow.query
     def get_token_usage(self) -> TokenUsage:
@@ -121,6 +169,8 @@ class ConferenceBookerWorkflow:
 
     async def _run_turn(self, message: str, record_user_message: bool) -> AgentTurnReply:
         async with self._turn_gate:
+            self._turn_count += 1
+
             if self._state.is_complete:
                 self._state = self._state.record(message, ALREADY_COMPLETE, record_user_message, [])
                 return AgentTurnReply(message=ALREADY_COMPLETE, tool_activities=[], is_complete=True)

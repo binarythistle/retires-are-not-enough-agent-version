@@ -157,7 +157,7 @@ control panel can point at either implementation. Don't run both implementations
   retryable, so the compensation keeps retrying until the fault is cleared and then succeeds.
   To see the "could not be cancelled" reply, arm a 400 instead.
 
-**Slice 7 — Lifecycle and observability**
+**Slice 7 — Lifecycle and observability** ✅
 - 1 h idle timeout, cancellation recorded in the transcript, continue-as-new after 25 turns or
   when suggested. (The turn gate, token usage query and round-trip logging arrived in Slice 5.)
 

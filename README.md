@@ -115,6 +115,22 @@ Both bookings send an idempotency key built from the workflow ID and the item be
 a retried POST returns the original booking instead of a duplicate. Compare this with the plain
 version's crash demo.
 
+### Journey lifecycle
+
+A conversation does not stay open for ever:
+
+- **Idle timeout.** An hour with no attendee turn closes the journey and records why. A
+  conference ticket that's already booked is left alone, because the attendee asked for it.
+- **Cancellation.** "Start new journey" sends `DELETE /api/conversations/{id}`, which cancels
+  the workflow. The workflow records the closure in the transcript and ends as Cancelled.
+- **Continue-as-new.** After 25 turns, or when Temporal suggests it, the run rolls over and
+  carries the journey state forward. Any turn in flight finishes first, so its caller still gets
+  a reply.
+
+Continue-as-new resets the **event history**, not the transcript. A rolled-over run starts with
+a handful of events instead of hundreds. It does not reduce token cost, because the prompt still
+carries every transcript entry.
+
 Token usage so far:
 
 ```bash
