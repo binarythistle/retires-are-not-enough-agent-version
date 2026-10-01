@@ -8,7 +8,6 @@ from __future__ import annotations
 import logging
 import uuid
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import httpx
 from fastapi import FastAPI
@@ -18,16 +17,21 @@ from openai import AsyncOpenAI
 
 from conference_booker.catalog import ConferenceCatalogClient
 from conference_booker.flights import FlightSearchClient
-from conference_booker.journey import ConversationEntry, ToolActivity
-from conference_booker.models import CamelModel
 from conference_booker.settings import Settings
+from conference_booker.web import (
+    STATIC_DIR,
+    ChatReply,
+    ChatRequest,
+    ConversationRequest,
+    ConversationTranscriptReply,
+    bad_request,
+    parse_id,
+)
 from plain_agent.agent import ConferenceBookerAgent
 from plain_agent.store import InMemoryConversationStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
-STATIC_DIR = Path(__file__).resolve().parent.parent / "web" / "static"
 
 # Shown when the process restarted under an open page. The plain version cannot recover the
 # conversation, and saying so plainly is the demo.
@@ -35,31 +39,6 @@ CONVERSATION_LOST = (
     "This conversation no longer exists: the agent process restarted and lost it. "
     "Refresh the page to start a new journey."
 )
-
-
-# Start chat: no message, just used to open the conversation.
-class ConversationRequest(CamelModel):
-    conversation_id: str | None = None
-
-
-# Continue chat: message required. Optional here so a missing one is our 400, not a 422.
-class ChatRequest(CamelModel):
-    message: str | None = None
-    conversation_id: str | None = None
-
-
-class ChatReply(CamelModel):
-    message: str
-    conversation_id: uuid.UUID
-    tool_activities: list[ToolActivity]
-    is_complete: bool
-
-
-# Carries the whole conversation history.
-class ConversationTranscriptReply(CamelModel):
-    conversation_id: uuid.UUID
-    messages: list[ConversationEntry]
-    is_complete: bool
 
 
 conversations = InMemoryConversationStore()
@@ -90,24 +69,13 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Conference Booker (plain)", lifespan=lifespan)
 
 
-def parse_id(value: str | None) -> uuid.UUID | None:
-    try:
-        return uuid.UUID(value) if value else None
-    except ValueError:
-        return None
-
-
-def bad_request(message: str) -> JSONResponse:
-    return JSONResponse({"error": message}, status_code=400)
-
-
 @app.post("/api/welcome")
 async def welcome(request: ConversationRequest | None = None) -> ChatReply:
     # Welcome is the only endpoint that mints an id: no usable id means a brand new journey.
     conversation_id = parse_id(request.conversation_id if request else None) or uuid.uuid4()
     conversation = conversations.get_or_create(conversation_id)
     reply = await agent.start(conversation)
-    return ChatReply(conversation_id=conversation_id, **reply.model_dump())
+    return ChatReply.of(conversation_id, reply)
 
 
 @app.post("/api/chat")
@@ -126,7 +94,7 @@ async def chat(request: ChatRequest):
         return JSONResponse({"error": CONVERSATION_LOST}, status_code=404)
 
     reply = await agent.run(conversation, request.message)
-    return ChatReply(conversation_id=conversation_id, **reply.model_dump())
+    return ChatReply.of(conversation_id, reply)
 
 
 @app.get("/api/conversations/{conversation_id}")

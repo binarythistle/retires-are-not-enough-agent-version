@@ -89,3 +89,10 @@ class AgentTurnReply(CamelModel):
 
 WELCOME_PROMPT = "Open the conversation and welcome the attendee."
 ALREADY_COMPLETE = "This journey is already complete. Start a new journey to make another booking."
+
+
+class ConversationTranscript(CamelModel):
+    """Whole transcript, used to restore the page after a refresh."""
+
+    messages: list[ConversationEntry]
+    is_complete: bool

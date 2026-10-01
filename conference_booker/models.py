@@ -10,7 +10,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import AliasGenerator, BaseModel, ConfigDict, PlainSerializer
+from pydantic import AliasChoices, AliasGenerator, BaseModel, ConfigDict, PlainSerializer
 from pydantic.alias_generators import to_camel, to_pascal
 
 
@@ -20,11 +20,19 @@ class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, frozen=True)
 
 
+def _camel_or_pascal(field_name: str) -> AliasChoices:
+    return AliasChoices(to_camel(field_name), to_pascal(field_name))
+
+
 class DomainModel(BaseModel):
-    """Read from the APIs in camelCase, written to the model in PascalCase."""
+    """Read from the APIs in camelCase, written to the model in PascalCase.
+
+    Reading also accepts PascalCase, because Temporal's pydantic converter stores models by
+    alias: a booking an activity returns has to read back from its own PascalCase payload.
+    """
 
     model_config = ConfigDict(
-        alias_generator=AliasGenerator(validation_alias=to_camel, serialization_alias=to_pascal),
+        alias_generator=AliasGenerator(validation_alias=_camel_or_pascal, serialization_alias=to_pascal),
         populate_by_name=True,
         frozen=True,
     )

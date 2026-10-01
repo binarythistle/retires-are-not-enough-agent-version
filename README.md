@@ -56,6 +56,52 @@ The frontend in `web/static/` is copied from the .NET `wwwroot/`, and both agent
 serve it. The only change is the message box placeholder, which now reads "Type your reply…"
 instead of "Which conferences can I attend?", so it fits every step of the conversation.
 
+## Temporal agent — port 5055
+
+The same journey and page, but each conversation is a Temporal workflow
+(`conversation-<id>`). The worker runs the agent. The web app is a thin Temporal client that
+needs no OpenAI key.
+
+```bash
+temporal server start-dev                         # gRPC 7233, UI http://localhost:8233
+uv run uvicorn apis.catalog.main:app --port 5056
+uv run uvicorn apis.flights.main:app --port 5057
+
+export OPENAI_API_KEY="your-key"
+uv run python -m temporal_agent.worker            # the only process that needs the key
+
+uv run uvicorn temporal_agent.main:app --port 5055
+```
+
+Stop the plain agent first, because both versions use port 5055. `TEMPORAL_ADDRESS` and
+`TEMPORAL_NAMESPACE` point at a different cluster. The worker reads the same `OPENAI_*`,
+`CATALOG_BASE_URL` and `FLIGHTS_BASE_URL` settings as the plain agent.
+
+| Browser call | Temporal |
+| --- | --- |
+| `POST /api/welcome` | update-with-start: starts the workflow and runs the opening turn |
+| `POST /api/chat` | `send_message` update; the reply is the update result |
+| `GET /api/conversations/{id}` | `get_transcript` query (works after completion too) |
+| `DELETE /api/conversations/{id}` | cancels the workflow |
+
+Each model round-trip and each API call is an activity, so the history in the UI shows the
+whole turn step by step. The clock and the three state tools run inline in the workflow.
+
+### Durability demos
+
+- **Kill the worker mid-turn.** Send a message, then `kill -9` the worker while the reply is
+  pending, and start it again. The turn resumes and the reply arrives. The model activity
+  heartbeats, so a dead worker is noticed in about 5 s.
+- **Restart the web app.** Refresh the page and the transcript is restored from the workflow.
+- **API outage.** Stop the Catalog API, ask about conferences, then start it again. The turn
+  waits while Temporal retries, then completes.
+
+Token usage so far:
+
+```bash
+temporal workflow query --type get_token_usage --workflow-id conversation-<id>
+```
+
 ## Conference Catalog API — port 5056
 
 ```bash

@@ -127,7 +127,7 @@ control panel can point at either implementation. Don't run both implementations
 
 ### Part 2 — Temporal
 
-**Slice 5 — Make it durable**
+**Slice 5 — Make it durable** ✅
 - `ConferenceBookerWorkflow`: one per conversation (`conversation-<id>`) that owns `JourneyState`.
 - Activities: `invoke_model`, plus the four API tools. The three state tools and the clock run
   inline in the workflow (`workflow.now()`).
@@ -136,6 +136,13 @@ control panel can point at either implementation. Don't run both implementations
 - OpenAI client created with `max_retries=0`, because Temporal owns retries.
 - *Test:* kill the worker mid-turn, restart it, and the turn completes. Restart the web app and
   the transcript is still there. Inspect the history in the Temporal UI.
+- Pulled forward from Slice 7: the turn lock and the `get_token_usage` query.
+- Added beyond .NET: the model activity heartbeats every second with a 5 s heartbeat timeout.
+  Without it, a worker killed mid model call is only detected after the full 60 s
+  `start_to_close_timeout`. With it, the turn resumes in about 5 s.
+- Known issue for Slice 6: a raw `httpx` exception, with its chained stack traces, is too big
+  for the SDK's failure size limit. The event history shows `Failure exceeds size limit.` with
+  the real error underneath. Raising short `ApplicationError`s fixes it.
 
 **Slice 6 — Failure handling**
 - Classify API failures: 4xx except 408/429 → non-retryable `ApplicationError`; everything
@@ -147,9 +154,8 @@ control panel can point at either implementation. Don't run both implementations
   and a 429 until cleared.
 
 **Slice 7 — Lifecycle and observability**
-- Turn gate (`asyncio.Lock` in the workflow), 1 h idle timeout, cancellation recorded in the
-  transcript, continue-as-new after 25 turns or when suggested.
-- Token usage on the state plus a `get_token_usage` query, and per-round-trip logging.
+- 1 h idle timeout, cancellation recorded in the transcript, continue-as-new after 25 turns or
+  when suggested. (The turn gate, token usage query and round-trip logging arrived in Slice 5.)
 
 ### Part 3 — WireMock and demo tooling
 
