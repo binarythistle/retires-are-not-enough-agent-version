@@ -8,6 +8,22 @@ A Python port of `../dotnet_agent_temporal`. See [PLAN.md](PLAN.md) for the slic
 uv sync
 ```
 
+## Plain agent (no Temporal) — port 5055
+
+```bash
+uv run uvicorn plain_agent.main:app --port 5055
+```
+
+Open <http://127.0.0.1:5055>. The page, API and agent all run in this one process, and
+conversations live only in its memory. Restart it and every journey is lost: a refresh starts
+a new journey, and an open page that sends a message is told the conversation is gone.
+
+The agent currently echoes your message (Slice 2). Type `complete` to see the
+journey-complete state and the **Start new journey** button.
+
+The frontend in `web/static/` is copied unchanged from the .NET `wwwroot/`, and both agent
+versions serve it.
+
 ## Conference Catalog API — port 5056
 
 ```bash

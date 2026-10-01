@@ -91,11 +91,12 @@ control panel can point at either implementation. Don't run both implementations
 - *Test:* run both and use curl or the `.http` file to list, filter, book, repeat a booking with
   the same key, and arm and clear a fault.
 
-**Slice 2 — Frontend and web shell (no LLM yet)**
+**Slice 2 — Frontend and web shell (no LLM yet)** ✅
 - Serve the copied `index.html` / `site.css` / `site.js` unchanged.
 - `POST /api/welcome`, `POST /api/chat`, `GET /api/conversations/{id}`,
-  `DELETE /api/conversations/{id}` (a no-op in the plain version), with the same request and
-  response shapes the JS expects.
+  `DELETE /api/conversations/{id}` (in the plain version it forgets the conversation), with the
+  same request and response shapes the JS expects. A chat for a conversation lost in a restart
+  returns a 404 explaining that the process restarted.
 - In-memory conversation store with a per-conversation `asyncio.Lock`.
 - The "agent" echoes the message back, with a fake tool activity so the activity chips render.
 - *Test:* the page looks identical to the .NET one, refresh restores the transcript, and

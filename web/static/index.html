@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Conference Booker</title>
+    <link rel="stylesheet" href="/site.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="product-header">
+        <div class="brand-mark" aria-hidden="true"><span></span></div>
+        <div>
+          <p class="eyebrow">CONFERENCE BOOKER / AGENT DEMO</p>
+          <h1>Never lose your place.</h1>
+          <p class="intro">A travel assistant for your next conference.</p>
+        </div>
+        <p class="agent-status"><span></span>Agent online</p>
+      </header>
+
+      <section class="chat-panel" aria-label="Conference Booker conversation">
+        <div class="chat-toolbar">
+          <span>Conversation</span>
+          <span>Model-directed tools enabled</span>
+        </div>
+        <section class="chat" aria-live="polite">
+          <p id="status">Connecting to the agent…</p>
+        </section>
+        <form id="chat-form">
+          <label for="message">Message Conference Booker</label>
+          <div class="composer">
+            <input id="message" name="message" placeholder="Which conferences can I attend?" autocomplete="off" />
+            <button type="submit">Send <span aria-hidden="true">↗</span></button>
+          </div>
+        </form>
+        <div class="journey-complete-actions" id="journey-complete-actions" hidden>
+          <span>Workflow complete</span>
+          <button type="button" id="restart-journey">Start new journey <span aria-hidden="true">↻</span></button>
+        </div>
+      </section>
+    </main>
+    <script src="/site.js"></script>
+  </body>
+</html>
