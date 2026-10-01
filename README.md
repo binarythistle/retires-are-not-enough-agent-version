@@ -52,8 +52,9 @@ The bookings send no idempotency key, on purpose:
 4. Go through the journey again and book. `GET /bookings` now holds a duplicate booking for the
    same traveller.
 
-The frontend in `web/static/` is copied unchanged from the .NET `wwwroot/`, and both agent
-versions serve it.
+The frontend in `web/static/` is copied from the .NET `wwwroot/`, and both agent versions
+serve it. The only change is the message box placeholder, which now reads "Type your reply…"
+instead of "Which conferences can I attend?", so it fits every step of the conversation.
 
 ## Conference Catalog API — port 5056
 
