@@ -35,6 +35,12 @@ must send:
 - A forced tool as `tool_choice: {"type":"function","function":{"name": ...}}`.
 - Tool results as `role: "tool"` messages carrying the model's `tool_call_id`.
 - Model `gpt-5.6-luna`, `reasoning_effort: "none"`.
+- Tool results as **PascalCase** JSON (`{"Saved":true,"Details":{...}}`), which is what .NET's
+  serializer produced. The stubs template from these fields, e.g. `$.Booking.BookingReference`.
+- Tool schemas with `"additionalProperties": false`.
+
+Slice 3 checked this against `wiremock/recordings`: the welcome request is identical, and the
+traveller-details tool result is byte-identical.
 
 ---
 
@@ -102,7 +108,7 @@ control panel can point at either implementation. Don't run both implementations
 - *Test:* the page looks identical to the .NET one, refresh restores the transcript, and
   restarting the process loses it.
 
-**Slice 3 — Real agent, first tools**
+**Slice 3 — Real agent, first tools** ✅
 - Shared core: journey state, system prompt, tool declarations, model round-trip.
 - Explicit agent loop (`MAX_STEPS = 8`) wired into the plain app.
 - Tools: `get_current_date_time`, `save_traveller_details`, `get_available_conferences`.

@@ -10,16 +10,27 @@ uv sync
 
 ## Plain agent (no Temporal) — port 5055
 
+Start the Conference Catalog API first (see below), then:
+
 ```bash
+export OPENAI_API_KEY="your-key"
 uv run uvicorn plain_agent.main:app --port 5055
 ```
+
+Optional settings: `OPENAI_MODEL` (default `gpt-5.6-luna`), `OPENAI_BASE_URL` (for example a
+WireMock URL), `CATALOG_BASE_URL` (default `http://127.0.0.1:5056`) and `FLIGHTS_BASE_URL`
+(default `http://127.0.0.1:5057`). The app refuses to start without `OPENAI_API_KEY`.
 
 Open <http://127.0.0.1:5055>. The page, API and agent all run in this one process, and
 conversations live only in its memory. Restart it and every journey is lost: a refresh starts
 a new journey, and an open page that sends a message is told the conversation is gone.
 
-The agent currently echoes your message (Slice 2). Type `complete` to see the
-journey-complete state and the **Start new journey** button.
+The log prints one line per model round-trip with its token counts, and one line per turn
+with the journey's running total.
+
+As of Slice 3 the agent can tell the time, save traveller details and list conferences.
+Selecting and booking arrive in Slice 4; until then the model is told those tools are not
+built yet.
 
 The frontend in `web/static/` is copied unchanged from the .NET `wwwroot/`, and both agent
 versions serve it.

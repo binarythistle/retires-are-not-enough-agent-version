@@ -4,14 +4,9 @@ workflow will keep the same values in event history, so every field must be a pl
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
-
-
-class CamelModel(BaseModel):
-    """camelCase on the wire, matching what site.js expects from the .NET app."""
-
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, frozen=True)
+from conference_booker.catalog import ConferenceBooking, ConferenceSummary
+from conference_booker.flights import FlightBooking, FlightOption
+from conference_booker.models import CamelModel, DomainModel
 
 
 class ConversationRoles:
@@ -35,11 +30,40 @@ class ConversationEntry(CamelModel):
     tool_activities: list[ToolActivity] = []
 
 
+class TravellerDetails(DomainModel):
+    traveller_name: str
+    departure_location: str
+    travel_preference: str
+
+
+class TokenUsage(CamelModel):
+    """Tokens billed for model work. A provider that reports no usage contributes zero."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+
+    def add(self, other: TokenUsage) -> TokenUsage:
+        return TokenUsage(
+            input_tokens=self.input_tokens + other.input_tokens,
+            output_tokens=self.output_tokens + other.output_tokens,
+            total_tokens=self.total_tokens + other.total_tokens,
+        )
+
+
 class JourneyState(CamelModel):
-    """The whole journey. Booking state is added alongside the transcript in later slices."""
+    """The whole journey. Immutable: every change produces a new state via model_copy."""
 
     entries: list[ConversationEntry] = []
+    available_conferences: list[ConferenceSummary] = []
+    selected_conference: ConferenceSummary | None = None
+    conference_booking: ConferenceBooking | None = None
+    traveller_details: TravellerDetails | None = None
+    available_flights: list[FlightOption] = []
+    selected_flight: FlightOption | None = None
+    flight_booking: FlightBooking | None = None
     is_complete: bool = False
+    tokens_used: TokenUsage = TokenUsage()
 
     def record(
         self,

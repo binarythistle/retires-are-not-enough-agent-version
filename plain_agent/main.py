@@ -5,16 +5,26 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from openai import AsyncOpenAI
 
-from conference_booker.journey import CamelModel, ConversationEntry, ToolActivity
-from plain_agent.agent import EchoAgent
+from conference_booker.catalog import ConferenceCatalogClient
+from conference_booker.journey import ConversationEntry, ToolActivity
+from conference_booker.models import CamelModel
+from conference_booker.settings import Settings
+from plain_agent.agent import ConferenceBookerAgent
 from plain_agent.store import InMemoryConversationStore
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "web" / "static"
 
@@ -51,9 +61,26 @@ class ConversationTranscriptReply(CamelModel):
     is_complete: bool
 
 
-app = FastAPI(title="Conference Booker (plain)")
 conversations = InMemoryConversationStore()
-agent = EchoAgent()
+agent: ConferenceBookerAgent
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    global agent
+    # Fails at startup with a clear message if OPENAI_API_KEY is missing.
+    settings = Settings.from_env()
+
+    async with (
+        httpx.AsyncClient(base_url=settings.catalog_base_url, timeout=10) as catalog_http,
+        AsyncOpenAI(api_key=settings.openai_api_key, timeout=60) as openai,
+    ):
+        agent = ConferenceBookerAgent(openai, settings.openai_model, ConferenceCatalogClient(catalog_http))
+        logging.getLogger(__name__).info("Model %s at %s", settings.openai_model, openai.base_url)
+        yield
+
+
+app = FastAPI(title="Conference Booker (plain)", lifespan=lifespan)
 
 
 def parse_id(value: str | None) -> uuid.UUID | None:
