@@ -1,0 +1,62 @@
+{
+  "mappings": [
+    {
+      "name": "Conference booking flaky 1/3 (HTTP 503)",
+      "priority": 1,
+      "scenarioName": "Conference booking flaky",
+      "requiredScenarioState": "Started",
+      "newScenarioState": "Failed 1",
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "1"
+        },
+        "jsonBody": {
+          "error": "Simulated fault: the Catalog API is unavailable.",
+          "injected": true
+        }
+      }
+    },
+    {
+      "name": "Conference booking flaky 2/3 (HTTP 429)",
+      "priority": 1,
+      "scenarioName": "Conference booking flaky",
+      "requiredScenarioState": "Failed 1",
+      "newScenarioState": "Failed 2",
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings"
+      },
+      "response": {
+        "status": 429,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "1"
+        },
+        "jsonBody": {
+          "error": "Simulated fault: too many requests.",
+          "injected": true
+        }
+      }
+    },
+    {
+      "name": "Conference booking flaky 3/3 (CONNECTION_RESET_BY_PEER)",
+      "priority": 1,
+      "scenarioName": "Conference booking flaky",
+      "requiredScenarioState": "Failed 2",
+      "newScenarioState": "Recovered",
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings"
+      },
+      "response": {
+        "fault": "CONNECTION_RESET_BY_PEER"
+      }
+    }
+  ]
+}

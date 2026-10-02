@@ -163,10 +163,20 @@ control panel can point at either implementation. Don't run both implementations
 
 ### Part 3 — WireMock and demo tooling
 
-**Slice 8 — WireMock**
-- Point `OPENAI_BASE_URL` at the mock and `CATALOG_BASE_URL` at the catalog stubs, and confirm
-  the existing stubs replay the scripted happy path unchanged.
-- Port the model-exchange recorder (`OPENAI_RECORD_TO`) if we need to re-record.
+**Slice 8 — WireMock** ✅ (tooling; the re-record and re-import are manual)
+- `wiremock/generate_catalog_stubs.py` builds the catalog mock from `apis/catalog/data.py`:
+  the list, bookings for all six conferences, cancel, a 404 for unknown conferences, and the
+  outage scenario.
+- `OPENAI_RECORD_TO` records raw model exchanges in the same format as .NET's recorder.
+  `wiremock/generate_llm_stubs.py` derives each stub's matching from the recorded request, so
+  it needs no editing after a re-record.
+- `cancel_booking` no longer parses the response body. The mock answers with a bare
+  `{"status":"Cancelled"}`, which would have failed validation and retried for ever.
+- Checked locally with WireMock standalone: record, generate, import, then replay through the
+  Temporal version. Replies were identical apart from the live booking references, with no
+  unmatched requests. "yes" works in place of "book".
+- The proxy mock is unchanged: with no `/v1` in the base URL, it forwards `/chat/completions`
+  to OpenAI as before.
 
 **Slice 9 — Control panel (optional)**
 - Adapt `controlpanel/app.py` to launch the Python processes instead of the .NET DLLs.

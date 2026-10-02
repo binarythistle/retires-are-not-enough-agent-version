@@ -44,7 +44,7 @@ async def classify_api_failures(api: str, work: Awaitable[T]) -> T:
         # Connection refused, DNS, timeouts: the API may come back, so keep retrying.
         _log(api, f"could not be reached ({type(error).__name__})", permanent=False)
         raise ApplicationError(
-            f"{api} could not be reached: {type(error).__name__}: {error}",
+            f"{api} could not be reached: {_describe(error)}",
             type=f"{api.replace(' ', '')}Unreachable",
         ) from None
 
@@ -58,7 +58,9 @@ async def classify_model_failures(work: Awaitable[T]) -> T:
         permanent = is_permanent(error.status_code)
         _log("Model", f"request failed with HTTP {error.status_code}", permanent)
         raise ApplicationError(
-            f"The model rejected the request with HTTP {error.status_code}.",
+            f"The model rejected the request with HTTP {error.status_code}."
+            if permanent
+            else f"The model returned HTTP {error.status_code}.",
             type="ModelPermanentFailure" if permanent else "ModelRetryableFailure",
             non_retryable=permanent,
         ) from None
@@ -66,6 +68,11 @@ async def classify_model_failures(work: Awaitable[T]) -> T:
         # Includes APITimeoutError.
         _log("Model", f"could not be reached ({type(error).__name__})", permanent=False)
         raise ApplicationError(f"The model could not be reached: {type(error).__name__}", type="ModelUnreachable") from None
+
+
+def _describe(error: Exception) -> str:
+    # Some network errors carry no message, which would leave "ReadError: " dangling.
+    return f"{type(error).__name__}: {error}" if str(error) else type(error).__name__
 
 
 def _log(api: str, what: str, permanent: bool) -> None:

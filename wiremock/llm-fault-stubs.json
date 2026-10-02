@@ -1,0 +1,127 @@
+{
+  "mappings": [
+    {
+      "name": "LLM flaky on book conference 1/2 (HTTP 503)",
+      "priority": 1,
+      "scenarioName": "LLM flaky on book conference",
+      "requiredScenarioState": "Started",
+      "newScenarioState": "Failed 1",
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_conference"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "1"
+        },
+        "jsonBody": {
+          "error": {
+            "message": "(mock) The server is overloaded. Please try again.",
+            "type": "server_error",
+            "param": null,
+            "code": null
+          }
+        }
+      }
+    },
+    {
+      "name": "LLM flaky on book conference 2/2 (HTTP 429)",
+      "priority": 1,
+      "scenarioName": "LLM flaky on book conference",
+      "requiredScenarioState": "Failed 1",
+      "newScenarioState": "Recovered",
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_conference"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 429,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "1"
+        },
+        "jsonBody": {
+          "error": {
+            "message": "(mock) Rate limit reached. Please try again.",
+            "type": "requests",
+            "param": null,
+            "code": "rate_limit_exceeded"
+          }
+        }
+      }
+    },
+    {
+      "name": "LLM flaky on book flight 1/2 (HTTP 500)",
+      "priority": 1,
+      "scenarioName": "LLM flaky on book flight",
+      "requiredScenarioState": "Started",
+      "newScenarioState": "Failed 1",
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_flight"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": {
+            "message": "(mock) The server had an error processing your request.",
+            "type": "server_error",
+            "param": null,
+            "code": null
+          }
+        }
+      }
+    },
+    {
+      "name": "LLM flaky on book flight 2/2 (CONNECTION_RESET_BY_PEER)",
+      "priority": 1,
+      "scenarioName": "LLM flaky on book flight",
+      "requiredScenarioState": "Failed 1",
+      "newScenarioState": "Recovered",
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_flight"
+            }
+          }
+        ]
+      },
+      "response": {
+        "fault": "CONNECTION_RESET_BY_PEER"
+      }
+    }
+  ]
+}

@@ -19,6 +19,7 @@ from temporalio.worker import Worker
 
 from conference_booker.catalog import ConferenceCatalogClient
 from conference_booker.flights import FlightSearchClient
+from conference_booker.recording import recording_http_client
 from conference_booker.settings import Settings
 from temporal_agent.activities import ConferenceBookerActivities
 from temporal_agent.shared import TASK_QUEUE
@@ -43,7 +44,12 @@ async def main() -> None:
         httpx.AsyncClient(base_url=settings.catalog_base_url, timeout=10) as catalog_http,
         httpx.AsyncClient(base_url=settings.flights_base_url, timeout=10) as flights_http,
         # Temporal owns retries. Two retry layers hide cost and confuse timeouts.
-        AsyncOpenAI(api_key=settings.openai_api_key, timeout=60, max_retries=0) as openai,
+        AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            timeout=60,
+            max_retries=0,
+            http_client=recording_http_client(settings.openai_record_to) if settings.openai_record_to else None,
+        ) as openai,
     ):
         activities = ConferenceBookerActivities(
             openai,

@@ -92,7 +92,7 @@ class ConferenceBookerActivities:
         )
 
     @activity.defn
-    async def cancel_conference_booking(self, booking_reference: str) -> ConferenceBooking:
+    async def cancel_conference_booking(self, booking_reference: str) -> None:
         """Compensation: releases a conference ticket when the journey cannot complete."""
         return await classify_api_failures(CATALOG_API, self._catalog.cancel_booking(booking_reference))
 

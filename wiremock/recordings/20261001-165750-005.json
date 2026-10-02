@@ -1,0 +1,231 @@
+{
+  "method": "POST",
+  "uri": "https://api.openai.com/v1/chat/completions",
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are Conference Booker, a friendly conference travel assistant.\nWelcome attendees and help them book a conference, then plan their travel.\nDecide whether to use an available tool based on its\ndescription. For conference information, use the catalogue tool\nrather than inventing conference details. For any time-sensitive\ndecision, including listing bookable conferences, use the\ncurrent-time tool and only present conferences that have not yet\nstarted.\n\nKeep replies concise. When presenting more than one conference,\nuse one Markdown bullet per conference. Format each item as: a\nbold conference name on the bullet line; dates and location on\nthe next line; then its description on a final line.\n\nStart by gathering the traveller's name, departure city or\nairport, and travel preference. Do not infer missing details.\nWhen all three are clear, save them with the traveller-details\ntool and confirm what was recorded. Do not list or select\nconferences until traveller details have been saved.\n\nOnce traveller details are saved, only select a conference when\nthe attendee has clearly chosen one. First obtain its exact ID\nfrom the catalogue if needed. After select_conference\nsucceeds, summarise the choice and ask for explicit confirmation\nto book the conference. Never state that a conference is selected\nunless select_conference succeeded during this turn\nor a selected-conference context is supplied below.\n\nOnly use the conference-booking tool after the attendee\nexplicitly asks to book their selected conference. Confirm the\nbooking reference and status returned by the tool. Never state\nthat a conference is booked, confirmed, or has a booking\nreference unless book_selected_conference succeeded\nduring this turn or a conference-booking context is supplied\nbelow.\n\nOnly after the conference booking is confirmed, use the\nflight-search tool to retrieve daily flight schedules when the\nattendee asks for flights or is ready to explore travel. Present\neach flight as a bold airline and flight number, followed by\nroute, times, and price. When the attendee clearly chooses one,\nuse the flight-selection tool with the exact ID returned by the\nflight-search tool, then summarise it and ask for explicit\nconfirmation to book. Never state that a flight is selected\nunless select_flight succeeded during this turn or a\nselected-flight context is supplied below.\n\nOnly use the flight-booking tool after the attendee explicitly\nasks to book their selected flight. Confirm the booking reference\nand status returned by the tool. Never state that a flight is\nbooked, confirmed, or has a booking reference unless\nbook_selected_flight succeeded during this turn or a\nbooking context is supplied below.\n\nThe attendee has not selected a conference yet.\nThe selected conference has not been booked yet.\nTraveller details are saved: Les Jackson, departing from LCY, with the preference 'aisle'.\nThe attendee has not selected a flight yet.\nThe selected flight has not been booked yet.\nNo flight options are currently retained for this journey.\nNever invent flight schedules or select or book a flight on the attendee's behalf."
+      },
+      {
+        "role": "assistant",
+        "content": "Welcome! I’m your conference travel assistant. To get started, please share:\n\n1. Your full name  \n2. Departure city or airport  \n3. Travel preference (for example, economy, business, or flexible dates)"
+      },
+      {
+        "role": "user",
+        "content": "Les Jackson, LCY, aisle"
+      },
+      {
+        "role": "assistant",
+        "content": "Thanks, Les. I recorded:\n\n- **Name:** Les Jackson\n- **Departure:** LCY\n- **Travel preference:** Aisle\n\nWhich conference would you like to attend? I can show the currently available future conferences."
+      },
+      {
+        "role": "user",
+        "content": "amsterdam"
+      },
+      {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_CQdAgwvwtffufTmqVoeDO7vn",
+            "type": "function",
+            "function": {
+              "name": "get_current_date_time",
+              "arguments": "{}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_CQdAgwvwtffufTmqVoeDO7vn",
+        "content": "\"2026-10-01T15:59:52.274805Z\""
+      }
+    ],
+    "model": "gpt-5.6-luna",
+    "reasoning_effort": "none",
+    "tool_choice": "auto",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "description": "Gets the current local date and time. Use it for every time-sensitive operation, including deciding whether a conference is in the future and bookable, or when planning flights and hotels. Do not assume the current date.",
+          "name": "get_current_date_time",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Gets conferences and their dates from the Conference Catalog API. Use it when the attendee asks what conferences or events are available, asks about a specific conference, or needs help choosing one. Use the current-time tool as well when deciding which conferences are in the future and bookable.",
+          "name": "get_available_conferences",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Records the attendee's selected conference. Call this only after they clearly choose a conference. The conferenceId must exactly match an ID returned by get_available_conferences. If the ID is unknown, call get_available_conferences first.",
+          "name": "select_conference",
+          "parameters": {
+            "type": "object",
+            "required": [
+              "conferenceId"
+            ],
+            "properties": {
+              "conferenceId": {
+                "type": "string",
+                "description": "Exact conference ID from get_available_conferences."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Creates a confirmed conference ticket booking for the selected conference and saved traveller. Call it only after the attendee explicitly asks to book, such as 'book it' or 'confirm booking'. It takes no arguments because it uses the selected conference and saved traveller details. Never call it merely because a conference was selected.",
+          "name": "book_selected_conference",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Validates and saves traveller details for the selected conference. Call it only after the attendee has clearly supplied all three values: travellerName, departureLocation as a city or airport, and travelPreference. Never infer missing values.",
+          "name": "save_traveller_details",
+          "parameters": {
+            "type": "object",
+            "required": [
+              "travellerName",
+              "departureLocation",
+              "travelPreference"
+            ],
+            "properties": {
+              "travellerName": {
+                "type": "string"
+              },
+              "departureLocation": {
+                "type": "string",
+                "description": "Departure city or airport."
+              },
+              "travelPreference": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Gets daily flight schedules from the saved departure city or airport to the selected conference city. Call it only after a conference booking and traveller details have been saved, when the attendee asks for flights or wants to plan travel. It takes no arguments because it uses the saved journey state.",
+          "name": "get_flight_options",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Records the attendee's chosen flight for the saved journey. Call it only after they clearly select a flight. The flightId must exactly match an ID returned by get_flight_options for this journey. If the attendee has not seen flight options or their choice is unclear, call get_flight_options or ask a follow-up question first.",
+          "name": "select_flight",
+          "parameters": {
+            "type": "object",
+            "required": [
+              "flightId"
+            ],
+            "properties": {
+              "flightId": {
+                "type": "string",
+                "description": "Exact flight ID from get_flight_options."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "Creates a confirmed booking for the selected flight and saved traveller. Call it only after the attendee explicitly asks to book, such as 'book it' or 'confirm booking'. It takes no arguments because it uses the selected flight and saved traveller details. Never call it merely because a flight was selected.",
+          "name": "book_selected_flight",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      }
+    ]
+  },
+  "status": 200,
+  "response": {
+    "id": "chatcmpl-EUDUGvAixPwD4WGur1PmbykRfXLmm",
+    "object": "chat.completion",
+    "created": 1790870392,
+    "model": "gpt-5.6-luna",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_SMhlcQZh4RxCDsYl6sfQZSog",
+              "type": "function",
+              "function": {
+                "name": "get_available_conferences",
+                "arguments": "{}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1449,
+      "completion_tokens": 15,
+      "total_tokens": 1464,
+      "prompt_tokens_details": {
+        "cached_tokens": 1400,
+        "cache_write_tokens": 46,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": null
+  }
+}

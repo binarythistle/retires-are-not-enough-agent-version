@@ -1,0 +1,1520 @@
+{
+  "mappings": [
+    {
+      "name": "LLM 01: 'Open the conversation and welcome the at' -> reply: Welcome! I’m your conference travel assistant. To ",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?is).*Open\\ the\\ conversation\\ and\\ welcome\\ the\\ attendee\\..*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDTVLLKiMaiyPBbGX3NbY4Fk6ijj",
+          "object": "chat.completion",
+          "created": 1790870345,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Welcome! I’m your conference travel assistant. To get started, please share:\n\n1. Your full name  \n2. Departure city or airport  \n3. Travel preference (for example, economy, business, or flexible dates)",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1282,
+            "completion_tokens": 48,
+            "total_tokens": 1330,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1279,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 02: 'Les Jackson, LCY, aisle' -> save_traveller_details",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?is).*Les\\ Jackson,\\ LCY,\\ aisle.*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDU4Qcn3Z0AfyEX5QkKU5uxZgqky",
+          "object": "chat.completion",
+          "created": 1790870380,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_qPm2RP3Of7ms5t6P9dWYmB2I",
+                    "type": "function",
+                    "function": {
+                      "name": "save_traveller_details",
+                      "arguments": "{\"travellerName\":\"Les Jackson\",\"departureLocation\":\"LCY\",\"travelPreference\":\"aisle\"}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1332,
+            "completion_tokens": 35,
+            "total_tokens": 1367,
+            "prompt_tokens_details": {
+              "cached_tokens": 1267,
+              "cache_write_tokens": 62,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 03: tool result -> reply: Thanks, Les. I recorded:",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_qPm2RP3Of7ms5t6P9dWYmB2I"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDU5q5vTAEj7ywhwBuJnignR3KTg",
+          "object": "chat.completion",
+          "created": 1790870381,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Thanks, Les. I recorded:\n\n- **Name:** Les Jackson\n- **Departure:** LCY\n- **Travel preference:** Aisle\n\nWhich conference would you like to attend? I can show the currently available future conferences.",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1410,
+            "completion_tokens": 50,
+            "total_tokens": 1460,
+            "prompt_tokens_details": {
+              "cached_tokens": 1329,
+              "cache_write_tokens": 78,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 04: 'amsterdam' -> get_current_date_time",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?is).*amsterdam.*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUFBXH9rs79vevo100ZVqCAtBYw",
+          "object": "chat.completion",
+          "created": 1790870391,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_CQdAgwvwtffufTmqVoeDO7vn",
+                    "type": "function",
+                    "function": {
+                      "name": "get_current_date_time",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1403,
+            "completion_tokens": 15,
+            "total_tokens": 1418,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1400,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 05: tool result -> get_available_conferences",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_CQdAgwvwtffufTmqVoeDO7vn"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUGvAixPwD4WGur1PmbykRfXLmm",
+          "object": "chat.completion",
+          "created": 1790870392,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_SMhlcQZh4RxCDsYl6sfQZSog",
+                    "type": "function",
+                    "function": {
+                      "name": "get_available_conferences",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1449,
+            "completion_tokens": 15,
+            "total_tokens": 1464,
+            "prompt_tokens_details": {
+              "cached_tokens": 1400,
+              "cache_write_tokens": 46,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 06: tool result -> reply: Here are the future conferences in Amsterdam:",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_SMhlcQZh4RxCDsYl6sfQZSog"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUIBDXuYhYKm427FHZM9IbACB3J",
+          "object": "chat.completion",
+          "created": 1790870394,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Here are the future conferences in Amsterdam:\n\n- **World AI Summit**  \n  October 7–8, 2027 — Amsterdam, Netherlands  \n  Explore a world of AI.\n\n- **Cloud Native Exchange**  \n  September 22–23, 2028 — Amsterdam, Netherlands  \n  A focused event for platform engineering, containers, and cloud operations.\n\nWhich one would you like to choose?",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1829,
+            "completion_tokens": 84,
+            "total_tokens": 1913,
+            "prompt_tokens_details": {
+              "cached_tokens": 1446,
+              "cache_write_tokens": 380,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 07: 'world ai summit' -> get_current_date_time",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?is).*world\\ ai\\ summit.*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUQFrfBstYwxiKhuuXVLXeqEP1X",
+          "object": "chat.completion",
+          "created": 1790870402,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_1JPwAB0ErW6WvIn7Sl0Ng0ij",
+                    "type": "function",
+                    "function": {
+                      "name": "get_current_date_time",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1497,
+            "completion_tokens": 15,
+            "total_tokens": 1512,
+            "prompt_tokens_details": {
+              "cached_tokens": 1400,
+              "cache_write_tokens": 94,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 08: tool result -> get_available_conferences",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_1JPwAB0ErW6WvIn7Sl0Ng0ij"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDURofKXpHvduaG8tlCdomFS9wpP",
+          "object": "chat.completion",
+          "created": 1790870403,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_slEUyg4JvIDrm991bqOmhShJ",
+                    "type": "function",
+                    "function": {
+                      "name": "get_available_conferences",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1543,
+            "completion_tokens": 15,
+            "total_tokens": 1558,
+            "prompt_tokens_details": {
+              "cached_tokens": 1400,
+              "cache_write_tokens": 140,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 09: tool result -> select_conference",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_slEUyg4JvIDrm991bqOmhShJ"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUSOSNTY8QUezyPAlbMRQt728ru",
+          "object": "chat.completion",
+          "created": 1790870404,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_IinC9rOkBUb73FZQsMOa2EDs",
+                    "type": "function",
+                    "function": {
+                      "name": "select_conference",
+                      "arguments": "{\"conferenceId\":\"world-ai-summit-amsterdam-2027\"}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1923,
+            "completion_tokens": 28,
+            "total_tokens": 1951,
+            "prompt_tokens_details": {
+              "cached_tokens": 1540,
+              "cache_write_tokens": 380,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 10: tool result -> reply: You’ve selected **World AI Summit** in Amsterdam, ",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_IinC9rOkBUb73FZQsMOa2EDs"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUTob9TneuYcxQRf5amhGnXGF4S",
+          "object": "chat.completion",
+          "created": 1790870405,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "You’ve selected **World AI Summit** in Amsterdam, October 7–8, 2027.\n\nWould you like me to book the conference?",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 2029,
+            "completion_tokens": 33,
+            "total_tokens": 2062,
+            "prompt_tokens_details": {
+              "cached_tokens": 1920,
+              "cache_write_tokens": 106,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 11: forced book_selected_conference -> book_selected_conference",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_conference"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUaRVt1c3BEAGcjGmttcHISlGBg",
+          "object": "chat.completion",
+          "created": 1790870412,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_1UNsQpra6BO9ScdosiGmTtRE",
+                    "type": "function",
+                    "function": {
+                      "name": "book_selected_conference",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1569,
+            "completion_tokens": 15,
+            "total_tokens": 1584,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1438,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 11: yes to booking -> book_selected_conference",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?i).*\\b(yes|yeah|yep|sure|please|ok|okay)\\b.*"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-2].content",
+              "matches": "(?is).*Would\\ you\\ like\\ me\\ to\\ book\\ the\\ conference\\?\\s*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUaRVt1c3BEAGcjGmttcHISlGBg",
+          "object": "chat.completion",
+          "created": 1790870412,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_1UNsQpra6BO9ScdosiGmTtRE",
+                    "type": "function",
+                    "function": {
+                      "name": "book_selected_conference",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1569,
+            "completion_tokens": 15,
+            "total_tokens": 1584,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1438,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 12: tool result -> reply: Your conference booking is confirmed.",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_1UNsQpra6BO9ScdosiGmTtRE"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDUcAGQdjfvn23euu2QuGsGfAni7",
+          "object": "chat.completion",
+          "created": 1790870414,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Your conference booking is confirmed.\n\n- **Conference:** World AI Summit\n- **Dates:** 7–8 October 2027\n- **Location:** Amsterdam, Netherlands\n- **Booking reference:** `{{jsonPath (jsonPath request.body '$.messages[-1].content') '$.Booking.BookingReference'}}`\n\nWould you like to explore flights from LCY?",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1705,
+            "completion_tokens": 61,
+            "total_tokens": 1766,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1702,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        },
+        "transformers": [
+          "response-template"
+        ]
+      }
+    },
+    {
+      "name": "LLM 13: yes -> get_current_date_time",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?i).*\\b(yes|yeah|yep|sure|please|ok|okay)\\b.*"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-2].content",
+              "matches": "(?is).*Would\\ you\\ like\\ to\\ explore\\ flights\\ from\\ LCY\\?\\s*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDVgGG8UNmzhbo9OgM4FZ5hGr86W",
+          "object": "chat.completion",
+          "created": 1790870480,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_t3ehDbvEEldw5ASa39Tt8nyK",
+                    "type": "function",
+                    "function": {
+                      "name": "get_current_date_time",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1649,
+            "completion_tokens": 15,
+            "total_tokens": 1664,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1646,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 14: tool result -> get_flight_options",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_t3ehDbvEEldw5ASa39Tt8nyK"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDViLgBMRTZe8Wbi38bXXWq4LDup",
+          "object": "chat.completion",
+          "created": 1790870482,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_s2T8ESNry6VWpSI1umX1moRX",
+                    "type": "function",
+                    "function": {
+                      "name": "get_flight_options",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1695,
+            "completion_tokens": 15,
+            "total_tokens": 1710,
+            "prompt_tokens_details": {
+              "cached_tokens": 1646,
+              "cache_write_tokens": 46,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 15: tool result -> reply: Here are the available flights from LCY to Amsterd",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_s2T8ESNry6VWpSI1umX1moRX"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDVkOJ1l8gqeeSyeNoxPFjlzQPKg",
+          "object": "chat.completion",
+          "created": 1790870484,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Here are the available flights from LCY to Amsterdam:\n\n- **British Airways BA 724** — LCY to AMS, 08:35–10:50, £115\n- **KLM KL 724** — LCY to AMS, 08:35–10:50, £123\n\nWhich flight would you like to select?",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1900,
+            "completion_tokens": 74,
+            "total_tokens": 1974,
+            "prompt_tokens_details": {
+              "cached_tokens": 1692,
+              "cache_write_tokens": 205,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 16: forced select_flight -> select_flight",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "select_flight"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDW4bPJ1P1FUGPRj1UduGfBuoSrQ",
+          "object": "chat.completion",
+          "created": 1790870504,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_0wIMX1DYvyoxeh2UMvyVAkZx",
+                    "type": "function",
+                    "function": {
+                      "name": "select_flight",
+                      "arguments": "{\"flightId\":\"lon-ams-british-airways-ba724\"}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1776,
+            "completion_tokens": 28,
+            "total_tokens": 1804,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1646,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 17: tool result -> reply: You’ve selected **British Airways BA 724**, depart",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_0wIMX1DYvyoxeh2UMvyVAkZx"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDW5TDrKrKn00fPxXrYLMrK7rAuI",
+          "object": "chat.completion",
+          "created": 1790870505,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "You’ve selected **British Airways BA 724**, departing LCY at 08:35 and arriving in Amsterdam at 10:50, priced at £115.\n\nWould you like me to book this flight?",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1907,
+            "completion_tokens": 45,
+            "total_tokens": 1952,
+            "prompt_tokens_details": {
+              "cached_tokens": 1773,
+              "cache_write_tokens": 131,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 18: forced book_selected_flight -> book_selected_flight",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_flight"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDWCkvGVprg7OeSS3WpiDs2v8oAr",
+          "object": "chat.completion",
+          "created": 1790870512,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_FAOjjYQj40GyuY46nmkg1ZmS",
+                    "type": "function",
+                    "function": {
+                      "name": "book_selected_flight",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1853,
+            "completion_tokens": 15,
+            "total_tokens": 1868,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1722,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 18: yes to booking -> book_selected_flight",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "user"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].content",
+              "matches": "(?i).*\\b(yes|yeah|yep|sure|please|ok|okay)\\b.*"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-2].content",
+              "matches": "(?is).*Would\\ you\\ like\\ me\\ to\\ book\\ this\\ flight\\?\\s*"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDWCkvGVprg7OeSS3WpiDs2v8oAr",
+          "object": "chat.completion",
+          "created": 1790870512,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                  {
+                    "id": "call_FAOjjYQj40GyuY46nmkg1ZmS",
+                    "type": "function",
+                    "function": {
+                      "name": "book_selected_flight",
+                      "arguments": "{}"
+                    }
+                  }
+                ],
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "tool_calls"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1853,
+            "completion_tokens": 15,
+            "total_tokens": 1868,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 1722,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        }
+      }
+    },
+    {
+      "name": "LLM 19: tool result -> reply: Your flight is booked and confirmed.",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].role",
+              "equalTo": "tool"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.messages[-1].tool_call_id",
+              "equalTo": "call_FAOjjYQj40GyuY46nmkg1ZmS"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-EUDWCBQDnDf1q7qjtTdv5THxbcoms",
+          "object": "chat.completion",
+          "created": 1790870512,
+          "model": "gpt-5.6-luna",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Your flight is booked and confirmed.\n\n- **Flight:** British Airways BA 724\n- **Route:** LCY to Amsterdam (AMS)\n- **Departure:** 08:35\n- **Arrival:** 10:50\n- **Price:** £115\n- **Booking reference:** `{{jsonPath (jsonPath request.body '$.messages[-1].content') '$.Booking.BookingReference'}}`\n- **Status:** Confirmed",
+                "refusal": null,
+                "annotations": []
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 2014,
+            "completion_tokens": 75,
+            "total_tokens": 2089,
+            "prompt_tokens_details": {
+              "cached_tokens": 1850,
+              "cache_write_tokens": 161,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "service_tier": "default",
+          "system_fingerprint": null
+        },
+        "transformers": [
+          "response-template"
+        ]
+      }
+    },
+    {
+      "name": "LLM fallback: off the happy-path script",
+      "priority": 100,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-mock-fallback",
+          "object": "chat.completion",
+          "created": 0,
+          "model": "mock",
+          "choices": [
+            {
+              "index": 0,
+              "finish_reason": "stop",
+              "message": {
+                "role": "assistant",
+                "refusal": null,
+                "content": "(mock) That message is not in the recorded happy path, so I have no scripted reply for it."
+              }
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      }
+    }
+  ]
+}

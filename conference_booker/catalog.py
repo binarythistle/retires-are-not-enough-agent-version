@@ -51,8 +51,8 @@ class ConferenceCatalogClient:
         response.raise_for_status()
         return ConferenceBooking.model_validate(response.json())
 
-    async def cancel_booking(self, booking_reference: str) -> ConferenceBooking:
-        """Releases a conference ticket. Idempotent on the API side."""
+    async def cancel_booking(self, booking_reference: str) -> None:
+        """Releases a conference ticket. Idempotent on the API side. Only success matters, so
+        the body is not parsed: the WireMock catalog stub answers with a bare status."""
         response = await self._http.post(f"/bookings/{quote(booking_reference, safe='')}/cancel")
         response.raise_for_status()
-        return ConferenceBooking.model_validate(response.json())

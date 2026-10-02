@@ -1,0 +1,10 @@
+{
+  "mappings": [
+    {
+      "name": "Proxy everything to OpenAI",
+      "priority": 10,
+      "request": { "method": "ANY", "urlPattern": "/.*" },
+      "response": { "proxyBaseUrl": "https://api.openai.com/v1" }
+    }
+  ]
+}

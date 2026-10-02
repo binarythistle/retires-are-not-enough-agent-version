@@ -1,0 +1,62 @@
+{
+  "mappings": [
+    {
+      "name": "FAULT: 503 on book conference",
+      "priority": 1,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_conference"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": {
+            "message": "Service unavailable (injected by WireMock)",
+            "type": "server_error",
+            "code": null
+          }
+        }
+      }
+    },
+    {
+      "name": "FAULT: 503 on book flight",
+      "priority": 1,
+      "request": {
+        "method": "POST",
+        "urlPath": "/chat/completions",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.tool_choice.function.name",
+              "equalTo": "book_selected_flight"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": {
+            "message": "Service unavailable (injected by WireMock)",
+            "type": "server_error",
+            "code": null
+          }
+        }
+      }
+    }
+  ]
+}

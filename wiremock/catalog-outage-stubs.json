@@ -1,0 +1,104 @@
+{
+  "mappings": [
+    {
+      "name": "List conferences outage 1/5 (503)",
+      "priority": 1,
+      "scenarioName": "Catalogue outage",
+      "requiredScenarioState": "Started",
+      "newScenarioState": "Failed 1",
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "Simulated outage, failure 1 of 5."
+        }
+      }
+    },
+    {
+      "name": "List conferences outage 2/5 (503)",
+      "priority": 1,
+      "scenarioName": "Catalogue outage",
+      "requiredScenarioState": "Failed 1",
+      "newScenarioState": "Failed 2",
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "Simulated outage, failure 2 of 5."
+        }
+      }
+    },
+    {
+      "name": "List conferences outage 3/5 (503)",
+      "priority": 1,
+      "scenarioName": "Catalogue outage",
+      "requiredScenarioState": "Failed 2",
+      "newScenarioState": "Failed 3",
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "Simulated outage, failure 3 of 5."
+        }
+      }
+    },
+    {
+      "name": "List conferences outage 4/5 (503)",
+      "priority": 1,
+      "scenarioName": "Catalogue outage",
+      "requiredScenarioState": "Failed 3",
+      "newScenarioState": "Failed 4",
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "Simulated outage, failure 4 of 5."
+        }
+      }
+    },
+    {
+      "name": "List conferences outage 5/5 (503)",
+      "priority": 1,
+      "scenarioName": "Catalogue outage",
+      "requiredScenarioState": "Failed 4",
+      "newScenarioState": "Recovered",
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "error": "Simulated outage, failure 5 of 5."
+        }
+      }
+    }
+  ]
+}

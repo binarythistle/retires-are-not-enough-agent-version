@@ -1,0 +1,241 @@
+{
+  "mappings": [
+    {
+      "name": "List conferences",
+      "priority": 5,
+      "request": {
+        "method": "GET",
+        "url": "/conferences"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": [
+          {
+            "id": "aicontext-hamburg-2027",
+            "name": "AI Context",
+            "location": "Hamburg, Germany",
+            "startsOn": "2027-09-02",
+            "endsOn": "2027-09-04",
+            "description": "Bringing Container Days and APIs together"
+          },
+          {
+            "id": "world-ai-summit-amsterdam-2027",
+            "name": "World AI Summit",
+            "location": "Amsterdam, Netherlands",
+            "startsOn": "2027-10-07",
+            "endsOn": "2027-10-08",
+            "description": "Expore a world of AI"
+          },
+          {
+            "id": "dotnet-london-2028",
+            "name": ".NET Conference London",
+            "location": "London, United Kingdom",
+            "startsOn": "2028-02-18",
+            "endsOn": "2028-02-19",
+            "description": "Two days of .NET, cloud, and AI engineering sessions."
+          },
+          {
+            "id": "ai-dev-berlin-2028",
+            "name": "AI Developer Summit",
+            "location": "Berlin, Germany",
+            "startsOn": "2028-04-14",
+            "endsOn": "2028-04-16",
+            "description": "A practical conference for teams building AI-enabled products."
+          },
+          {
+            "id": "software-craft-manchester-2028",
+            "name": "Software Craft Manchester",
+            "location": "Manchester, United Kingdom",
+            "startsOn": "2028-06-09",
+            "endsOn": "2028-06-10",
+            "description": "Hands-on sessions covering architecture, delivery, and engineering practice."
+          },
+          {
+            "id": "cloud-native-amsterdam-2028",
+            "name": "Cloud Native Exchange",
+            "location": "Amsterdam, Netherlands",
+            "startsOn": "2028-09-22",
+            "endsOn": "2028-09-23",
+            "description": "A focused event for platform engineering, containers, and cloud operations."
+          }
+        ]
+      }
+    },
+    {
+      "name": "Book AI Context",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'aicontext-hamburg-2027')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"aicontext-hamburg-2027\",\"name\":\"AI Context\",\"location\":\"Hamburg, Germany\",\"startsOn\":\"2027-09-02\",\"endsOn\":\"2027-09-04\",\"description\":\"Bringing Container Days and APIs together\"}}"
+      }
+    },
+    {
+      "name": "Book World AI Summit",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'world-ai-summit-amsterdam-2027')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"world-ai-summit-amsterdam-2027\",\"name\":\"World AI Summit\",\"location\":\"Amsterdam, Netherlands\",\"startsOn\":\"2027-10-07\",\"endsOn\":\"2027-10-08\",\"description\":\"Expore a world of AI\"}}"
+      }
+    },
+    {
+      "name": "Book .NET Conference London",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'dotnet-london-2028')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"dotnet-london-2028\",\"name\":\".NET Conference London\",\"location\":\"London, United Kingdom\",\"startsOn\":\"2028-02-18\",\"endsOn\":\"2028-02-19\",\"description\":\"Two days of .NET, cloud, and AI engineering sessions.\"}}"
+      }
+    },
+    {
+      "name": "Book AI Developer Summit",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'ai-dev-berlin-2028')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"ai-dev-berlin-2028\",\"name\":\"AI Developer Summit\",\"location\":\"Berlin, Germany\",\"startsOn\":\"2028-04-14\",\"endsOn\":\"2028-04-16\",\"description\":\"A practical conference for teams building AI-enabled products.\"}}"
+      }
+    },
+    {
+      "name": "Book Software Craft Manchester",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'software-craft-manchester-2028')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"software-craft-manchester-2028\",\"name\":\"Software Craft Manchester\",\"location\":\"Manchester, United Kingdom\",\"startsOn\":\"2028-06-09\",\"endsOn\":\"2028-06-10\",\"description\":\"Hands-on sessions covering architecture, delivery, and engineering practice.\"}}"
+      }
+    },
+    {
+      "name": "Book Cloud Native Exchange",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$[?(@.conferenceId == 'cloud-native-amsterdam-2028')]"
+          }
+        ]
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"bookingReference\":\"CONF-{{randomValue length=8 type='HEXADECIMAL' uppercase=true}}\",\"status\":\"Confirmed\",\"bookedAt\":\"{{now}}\",\"travellerName\":\"{{jsonPath request.body '$.travellerName'}}\",\"conference\":{\"id\":\"cloud-native-amsterdam-2028\",\"name\":\"Cloud Native Exchange\",\"location\":\"Amsterdam, Netherlands\",\"startsOn\":\"2028-09-22\",\"endsOn\":\"2028-09-23\",\"description\":\"A focused event for platform engineering, containers, and cloud operations.\"}}"
+      }
+    },
+    {
+      "name": "Book unknown conference (404)",
+      "priority": 10,
+      "request": {
+        "method": "POST",
+        "urlPath": "/bookings"
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "body": "{\"error\":\"Conference '{{jsonPath request.body '$.conferenceId'}}' was not found.\"}"
+      }
+    },
+    {
+      "name": "Cancel conference booking",
+      "priority": 5,
+      "request": {
+        "method": "POST",
+        "urlPathTemplate": "/bookings/{bookingReference}/cancel"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "status": "Cancelled"
+        }
+      }
+    }
+  ]
+}

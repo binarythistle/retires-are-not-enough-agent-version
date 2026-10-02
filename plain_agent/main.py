@@ -13,10 +13,12 @@ import httpx
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+import openai
 from openai import AsyncOpenAI
 
 from conference_booker.catalog import ConferenceCatalogClient
 from conference_booker.flights import FlightSearchClient
+from conference_booker.recording import recording_http_client
 from conference_booker.settings import Settings
 from conference_booker.web import (
     STATIC_DIR,
@@ -35,6 +37,10 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Shown when the process restarted under an open page. The plain version cannot recover the
 # conversation, and saying so plainly is the demo.
+# The model failed even after the OpenAI SDK's own in-process retries (two by default). Nothing
+# retries the turn after that: the attendee has to send the message again.
+TURN_FAILED = "The agent could not complete that turn. Please try again."
+
 CONVERSATION_LOST = (
     "This conversation no longer exists: the agent process restarted and lost it. "
     "Refresh the page to start a new journey."
@@ -54,7 +60,11 @@ async def lifespan(_: FastAPI):
     async with (
         httpx.AsyncClient(base_url=settings.catalog_base_url, timeout=10) as catalog_http,
         httpx.AsyncClient(base_url=settings.flights_base_url, timeout=10) as flights_http,
-        AsyncOpenAI(api_key=settings.openai_api_key, timeout=60) as openai,
+        AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            timeout=60,
+            http_client=recording_http_client(settings.openai_record_to) if settings.openai_record_to else None,
+        ) as openai,
     ):
         agent = ConferenceBookerAgent(
             openai,
@@ -74,7 +84,10 @@ async def welcome(request: ConversationRequest | None = None) -> ChatReply:
     # Welcome is the only endpoint that mints an id: no usable id means a brand new journey.
     conversation_id = parse_id(request.conversation_id if request else None) or uuid.uuid4()
     conversation = conversations.get_or_create(conversation_id)
-    reply = await agent.start(conversation)
+    try:
+        reply = await agent.start(conversation)
+    except openai.OpenAIError as error:
+        return turn_failed(error)
     return ChatReply.of(conversation_id, reply)
 
 
@@ -93,8 +106,16 @@ async def chat(request: ChatRequest):
     if conversation is None:
         return JSONResponse({"error": CONVERSATION_LOST}, status_code=404)
 
-    reply = await agent.run(conversation, request.message)
+    try:
+        reply = await agent.run(conversation, request.message)
+    except openai.OpenAIError as error:
+        return turn_failed(error)
     return ChatReply.of(conversation_id, reply)
+
+
+def turn_failed(error: openai.OpenAIError) -> JSONResponse:
+    logging.getLogger(__name__).warning("Turn failed: %r", error)
+    return JSONResponse({"error": TURN_FAILED}, status_code=502)
 
 
 @app.get("/api/conversations/{conversation_id}")

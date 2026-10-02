@@ -16,6 +16,8 @@ class Settings:
     openai_model: str
     catalog_base_url: str
     flights_base_url: str
+    # When set, every model request and response is saved here for turning into WireMock stubs.
+    openai_record_to: str | None
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -28,4 +30,5 @@ class Settings:
             openai_model=os.environ.get("OPENAI_MODEL", "gpt-5.6-luna"),
             catalog_base_url=os.environ.get("CATALOG_BASE_URL", "http://127.0.0.1:5056"),
             flights_base_url=os.environ.get("FLIGHTS_BASE_URL", "http://127.0.0.1:5057"),
+            openai_record_to=os.environ.get("OPENAI_RECORD_TO") or None,
         )
